@@ -4,7 +4,7 @@
 int main() {
     // SFML 默认使用 OpenGL，直接创建窗口即可
     sf::VideoMode vm(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT));
-    sf::RenderWindow window(vm, "坦克大战 - C++");
+    sf::RenderWindow window(vm, "TankBattle - C++");
     window.setFramerateLimit(FPS);
 
     Game game;

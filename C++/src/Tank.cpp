@@ -22,21 +22,23 @@ void Tank::update(float dt) {
 
 void Tank::draw(sf::RenderWindow& window) {
     if (!alive) return;
-    
-    sf::RectangleShape body(sf::Vector2f(w, h));
-    body.setPosition(sf::Vector2f(x, y));
-    body.setFillColor(color);
-    body.setOutlineColor(sf::Color::White);
-    body.setOutlineThickness(1.0f);
-    // body.setCornerRadius(6.0f);  // SFML 3.0 不支持，已注释
+
+    // 主体
+    sf::ConvexShape body = create16Shape(x, y, w, h, 4.0f, 12.0f, color);
     window.draw(body);
 
+    // 边框
+    sf::ConvexShape border = create16Border(x, y, w, h, 4.0f, 12.0f);
+    window.draw(border);
+
+    // 炮塔
     sf::Vector2f center = getCenter();
     sf::CircleShape turret(w / 5.0f);
     turret.setPosition(sf::Vector2f(center.x - w/5.0f, center.y - h/5.0f));
     turret.setFillColor(sf::Color::White);
     window.draw(turret);
 
+    // 炮管
     float endX = center.x + dirX * (w / 2.0f + 2.0f);
     float endY = center.y + dirY * (h / 2.0f + 2.0f);
     sf::Vertex line[2];
@@ -46,10 +48,10 @@ void Tank::draw(sf::RenderWindow& window) {
     line[1].color = sf::Color::White;
     window.draw(line, 2, sf::PrimitiveType::Lines);
 
-    // 玩家编号（兼容中文字体）
+    // 玩家编号
     if (player) {
         sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/consola.ttf") ||
+        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
             font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
             sf::Text text(font, std::to_string(playerId), 14);
             text.setFillColor(sf::Color::Black);
@@ -61,7 +63,7 @@ void Tank::draw(sf::RenderWindow& window) {
         }
     }
     
-    // 子弹绘制
+    // 子弹
     for (auto& b : bullets) {
         b.draw(window);
     }

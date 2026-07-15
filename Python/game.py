@@ -464,7 +464,7 @@ class Game:
         # Game Over
         if self.game_over:
             text = font_big.render("GAME OVER", True, (255, 50, 50))
-            screen.blit(text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
+            screen.blit(text, (WINDOW_WIDTH // 2 - 80, WINDOW_HEIGHT // 2 - 50))
             text2 = font.render("Press R to restart", True, COLORS['text'])
             screen.blit(text2, (WINDOW_WIDTH // 2 - 80, WINDOW_HEIGHT // 2 + 40))
 

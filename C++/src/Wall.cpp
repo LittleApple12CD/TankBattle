@@ -9,10 +9,11 @@ sf::FloatRect Wall::getRect() const {
 
 void Wall::draw(sf::RenderWindow& window) {
     if (!alive) return;
-    sf::RectangleShape rect(sf::Vector2f(w, h));
-    rect.setPosition(sf::Vector2f(x, y));
-    rect.setFillColor(steel ? COLOR_STEEL : COLOR_WALL);
-    rect.setOutlineColor(sf::Color::White);
-    rect.setOutlineThickness(1.0f);
-    window.draw(rect);
+
+    sf::Color fillColor = steel ? COLOR_STEEL : COLOR_WALL;
+    sf::ConvexShape wall = create16Shape(x, y, w, h, 4.0f, 8.0f, fillColor);
+    window.draw(wall);
+
+    sf::ConvexShape border = create16Border(x, y, w, h, 4.0f, 8.0f);
+    window.draw(border);
 }

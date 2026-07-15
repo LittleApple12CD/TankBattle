@@ -12,7 +12,7 @@ class TankBattle:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        pygame.display.set_caption("坦克大战 - Python (PVP/PVE)")
+        pygame.display.set_caption("TankBattle - Python")
         self.clock = pygame.time.Clock()
         self.game = Game()
         self.running = True

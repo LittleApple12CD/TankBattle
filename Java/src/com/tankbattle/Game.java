@@ -439,7 +439,7 @@ public class Game {
         if (gameOver) {
             g.setColor(new Color(255, 50, 50));
             g.setFont(fontBig);
-            g.drawString("GAME OVER", WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT / 2 - 20);
+            g.drawString("GAME OVER", WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2 - 20);
             g.setColor(COLOR_TEXT);
             g.setFont(fontNormal);
             g.drawString("Press R to restart", WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2 + 40);

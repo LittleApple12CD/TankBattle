@@ -307,7 +307,7 @@ public class Main extends JPanel implements Runnable, KeyListener {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("坦克大战 - Java");
+            JFrame frame = new JFrame("TankBattle - Java");
             Main panel = new Main();
 
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
