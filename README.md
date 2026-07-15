@@ -36,6 +36,7 @@ TankBattle/
 │ ├── entities.py
 │ ├── ai.py
 │ ├── config.py
+│ ├── icon.ico
 │ └── package.bat
 │
 ├── Java/ # Java 版本（Swing）
@@ -48,6 +49,7 @@ TankBattle/
 │ │ ├── Explosion.java
 │ │ ├── EnemyAI.java
 │ │ ├── MapGenerator.java
+│ │ ├── icon.png
 │ │ └── Utils.java
 │ ├── compile.bat
 │ └── build.bat
@@ -62,6 +64,7 @@ TankBattle/
 │ ├── Explosion.cpp/.h
 │ ├── EnemyAI.cpp/.h
 │ ├── MapGenerator.cpp/.h
+│ ├── icon.ico
 │ └── Utils.h
 ├── build.sh
 └── CMakeLists.txt
