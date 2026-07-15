@@ -92,7 +92,7 @@ inline sf::ConvexShape create16Shape(float x, float y, float w, float h,
 inline sf::ConvexShape create16Border(float x, float y, float w, float h,
                                        float cornerCut, float midLength,
                                        sf::Color outlineColor = sf::Color::White,
-                                       float thickness = 1.0f) {
+                                       float thickness = 0.0f) {
     float offset = 1.0f;
 
     sf::ConvexShape border;

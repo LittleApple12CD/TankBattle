@@ -261,6 +261,9 @@ public class Main extends JPanel implements Runnable, KeyListener {
             case KeyEvent.VK_J:
                 p2Shoot = true;
                 break;
+            case KeyEvent.VK_O:
+                game.toggleSingleMode();
+                break;
         }
     }
 

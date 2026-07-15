@@ -42,6 +42,7 @@ int main() {
                     case sf::Keyboard::Key::W: p2Up = true; break;
                     case sf::Keyboard::Key::S: p2Down = true; break;
                     case sf::Keyboard::Key::J: p2Shoot = true; break;
+                    case sf::Keyboard::Key::O: game.toggleSingleMode(); break;
                     default: break;
                 }
             }

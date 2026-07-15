@@ -23,9 +23,21 @@ public class Game {
     private boolean paused;
     private int currentMap;
     private boolean pvpMode;
+    private int enemyCount;
 
     private Random random;
     private String[] mapNames;
+
+    private boolean singleMode = false;
+
+    public void toggleSingleMode() {
+        singleMode = !singleMode;
+        if (singleMode) {
+            pvpMode = false;
+        }
+        initLevel();
+    }
+
 
     public Game() {
         walls = new ArrayList<>();
@@ -65,6 +77,7 @@ public class Game {
         paused = false;
         score = 0;
         enemySpawnTimer = 0;
+        enemyCount = singleMode ? ENEMY_COUNT * 2 : ENEMY_COUNT;
         // =========================
 
         walls.clear();
@@ -89,6 +102,13 @@ public class Game {
             for (int i = 0; i < ENEMY_COUNT; i++) {
             spawnEnemy();
             }
+        }
+
+        if (singleMode) {
+            player2 = null;
+            enemyCount = ENEMY_COUNT * 2;
+        } else {
+            enemyCount = ENEMY_COUNT;
         }
     }
 

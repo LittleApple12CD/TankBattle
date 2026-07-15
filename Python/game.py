@@ -23,8 +23,21 @@ class Game:
         self.paused = False
         self.current_map = 0
         self.pvp_mode = False          # False=PVE合作, True=PVP对战
+        self.single_mode = False  # False=双人, True=单人
+        self.enemy_count = ENEMY_COUNT  # 单人时敌人翻倍
         
         self._init_fonts()
+        self._init_level()
+    
+    def toggle_single_mode(self):
+        """切换单双人模式"""
+        self.single_mode = not self.single_mode
+        # 单人模式强制禁用 PVP
+        if self.single_mode:
+            self.pvp_mode = False
+            self.enemy_count = ENEMY_COUNT * 2
+        else:
+            self.enemy_count = ENEMY_COUNT
         self._init_level()
 
     def _init_fonts(self):
@@ -80,6 +93,12 @@ class Game:
         if not self.pvp_mode:
             for i in range(ENEMY_COUNT):
                 self._spawn_enemy()
+
+        if self.single_mode:
+            self.player2 = None
+            enemy_count = ENEMY_COUNT * 2
+        else:
+            enemy_count = ENEMY_COUNT
 
     def _build_map(self, map_id):
         self._build_border()

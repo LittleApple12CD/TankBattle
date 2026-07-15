@@ -10,6 +10,12 @@
 #include "EnemyAI.h"
 
 class Game {
+
+    bool singleMode;
+    int enemyCount;
+public:
+    void toggleSingleMode();
+    
 public:
     Game();
     void update(float dt);

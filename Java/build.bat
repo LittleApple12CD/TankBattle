@@ -35,6 +35,11 @@ echo Class-Path: . >> MANIFEST.MF
 
 echo 打包 JAR...
 jar cvfm TankBattle.jar MANIFEST.MF -C out .
+if %errorlevel% neq 0 (
+    echo [错误] 打包失败！
+    pause
+    exit /b 1
+)
 
 del MANIFEST.MF
 rmdir /s /q out
@@ -45,5 +50,23 @@ echo   [成功] 打包完成！
 echo   输出: TankBattle.jar
 echo ========================================
 echo.
-echo 正在运行...
-java -jar TankBattle.jar
+echo   文件大小:
+dir TankBattle.jar | find "TankBattle.jar"
+echo.
+echo ========================================
+echo  是否现在运行?
+echo   1) 是 (运行)
+echo   2) 否 (退出)
+echo.
+set /p run_choice="请输入 [1/2]: "
+
+if "%run_choice%"=="1" (
+    echo.
+    echo 正在运行...
+    java -jar TankBattle.jar
+) else (
+    echo.
+    echo 已退出。
+)
+
+pause

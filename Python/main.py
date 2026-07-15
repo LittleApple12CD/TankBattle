@@ -45,6 +45,8 @@ class TankBattle:
                         self.game = Game()
                     elif event.key == pygame.K_g:
                         self.game.toggle_pvp_mode()
+                    elif event.key == pygame.K_o:
+                        self.game.toggle_single_mode()
                     
                     # ---- P1 控制 (方向键) ----
                     elif event.key == pygame.K_LEFT:

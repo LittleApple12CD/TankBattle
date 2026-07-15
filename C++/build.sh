@@ -382,7 +382,7 @@ show_menu() {
     echo "${CYAN}      坦克大战 - C++ 编译工具          ${NC}"
     echo "${CYAN}========================================${NC}"
     echo ""
-    echo "  ${GREEN}1${NC}) MinGW 动态编译 (推荐)"
+    echo "  ${GREEN}1${NC}) MinGW 直接编译 (推荐)"
     echo "  ${GREEN}2${NC}) CMake 编译"
     echo "  ${GREEN}3${NC}) 运行程序"
     echo "  ${GREEN}4${NC}) 打包发布包 (ZIP)"

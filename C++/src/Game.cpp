@@ -15,6 +15,7 @@ void Game::initLevel() {
     paused = false;
     score = 0;
     enemySpawnTimer = 0;
+    enemyCount = singleMode ? ENEMY_COUNT * 2 : ENEMY_COUNT;  // 根据模式设置敌人数量
     walls.clear();
     explosions.clear();
     enemies.clear();
@@ -25,14 +26,24 @@ void Game::initLevel() {
     player2 = nullptr;
     currentMap = intDist(rng);
     MapGenerator::generateMap(currentMap, walls);
+    
+    // 玩家1（始终存在）
     float p1x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     float p1y = GRID_OFFSET_Y + (GRID_SIZE-3)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     player1 = new Tank(p1x, p1y, COLOR_PLAYER1, TANK_SPEED, true, 1);
-    float p2x = GRID_OFFSET_X + (GRID_SIZE-2)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
-    float p2y = GRID_OFFSET_Y + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
-    player2 = new Tank(p2x, p2y, COLOR_PLAYER2, TANK_SPEED, true, 2);
+    
+    // 玩家2：仅在双人模式存在
+    if (!singleMode) {
+        float p2x = GRID_OFFSET_X + (GRID_SIZE-2)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        float p2y = GRID_OFFSET_Y + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        player2 = new Tank(p2x, p2y, COLOR_PLAYER2, TANK_SPEED, true, 2);
+    } else {
+        player2 = nullptr;  // 单人模式没有玩家2
+    }
+    
+    // 生成敌人（使用 enemyCount）
     if (!pvpMode) {
-        for (int i = 0; i < ENEMY_COUNT; ++i) spawnEnemy();
+        for (int i = 0; i < enemyCount; ++i) spawnEnemy();
     }
 }
 
@@ -41,8 +52,20 @@ void Game::togglePvpMode() {
     initLevel();
 }
 
+void Game::toggleSingleMode() {
+    singleMode = !singleMode;
+    if (singleMode) {
+        pvpMode = false;      // 单人模式禁用 PVP
+        enemyCount = ENEMY_COUNT * 2;
+    } else {
+        enemyCount = ENEMY_COUNT;
+    }
+    initLevel();
+}
+
+
 void Game::spawnEnemy() {
-    if (enemies.size() >= ENEMY_COUNT) return;
+    if (enemies.size() >= enemyCount) return;
     
     int spawnPos[3][2] = {{GRID_SIZE-2,1},{GRID_SIZE/2,1},{1,1}};
     int idx = static_cast<int>(dist(rng)*3);
