@@ -169,6 +169,7 @@ copy_all_dlls() {
 }
 
 compile_mingw() {
+    windres src/icon.rc -O coff -o src/icon.res
     print_header "MinGW 动态编译"
     if ! check_command g++; then
         print_error "g++ 未找到！"
@@ -187,9 +188,11 @@ compile_mingw() {
     SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp"
     
     g++ -std=c++17 -O2 -mwindows \
-        $SOURCES \
-        -lsfml-graphics -lsfml-window -lsfml-system \
-        -o TankBattle.exe
+            src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp \
+            src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp \
+            src/icon.res \
+            -lsfml-graphics -lsfml-window -lsfml-system \
+            -o TankBattle.exe
     
     if [ $? -eq 0 ]; then
         print_success "编译成功！"

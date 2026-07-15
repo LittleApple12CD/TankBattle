@@ -4,9 +4,8 @@ project(TankBattle)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 硬编码 UCRT64 路径
-set(SFML_INCLUDE_DIR "/ucrt64/include")
-set(SFML_LIBRARY_DIR "/ucrt64/lib")
+# 添加资源文件
+set(RESOURCES src/icon.rc)
 
 set(SOURCES
     src/main.cpp
@@ -17,19 +16,15 @@ set(SOURCES
     src/Explosion.cpp
     src/EnemyAI.cpp
     src/MapGenerator.cpp
+    ${RESOURCES}
 )
 
 add_executable(TankBattle WIN32 ${SOURCES})
 
-target_include_directories(TankBattle PRIVATE ${SFML_INCLUDE_DIR})
-
-# 使用 find_library 查找库文件
-find_library(SFML_GRAPHICS_LIB NAMES sfml-graphics libsfml-graphics PATHS ${SFML_LIBRARY_DIR})
-find_library(SFML_WINDOW_LIB NAMES sfml-window libsfml-window PATHS ${SFML_LIBRARY_DIR})
-find_library(SFML_SYSTEM_LIB NAMES sfml-system libsfml-system PATHS ${SFML_LIBRARY_DIR})
-
 target_link_libraries(TankBattle
-    ${SFML_GRAPHICS_LIB}
-    ${SFML_WINDOW_LIB}
-    ${SFML_SYSTEM_LIB}
+    sfml-graphics
+    sfml-window
+    sfml-system
 )
+
+target_include_directories(TankBattle PRIVATE src)

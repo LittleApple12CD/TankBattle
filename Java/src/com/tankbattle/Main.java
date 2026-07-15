@@ -1,8 +1,10 @@
 package com.tankbattle;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 
 import static com.tankbattle.Utils.*;
 
@@ -309,6 +311,14 @@ public class Main extends JPanel implements Runnable, KeyListener {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("TankBattle - Java");
             Main panel = new Main();
+
+            // 用 ImageIO 加载
+            try {
+                Image icon = ImageIO.read(new File("src/com/tankbattle/icon.png"));
+                frame.setIconImage(icon);
+            } catch (Exception e) {
+                System.out.println("图标加载失败: " + e.getMessage());
+            }
 
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setResizable(false);

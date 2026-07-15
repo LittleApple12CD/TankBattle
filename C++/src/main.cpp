@@ -2,10 +2,15 @@
 #include "Game.h"
 
 int main() {
-    // SFML 默认使用 OpenGL，直接创建窗口即可
     sf::VideoMode vm(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT));
     sf::RenderWindow window(vm, "TankBattle - C++");
     window.setFramerateLimit(FPS);
+
+    // 设置窗口图标（SFML 3.0 正确写法）
+    sf::Image icon;
+    if (icon.loadFromFile("icon.png")) {
+        window.setIcon(sf::Vector2u(icon.getSize().x, icon.getSize().y), icon.getPixelsPtr());
+    }
 
     Game game;
     sf::Clock clock;
