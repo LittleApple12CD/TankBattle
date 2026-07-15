@@ -1,6 +1,6 @@
 # 坦克大战
 
-**Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式**。本项目用 **Python、Java、C++** 三种语言实现，使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
+**Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式**。本项目用 **Python、Java、C++** 三种语言实现，使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
 
 ## 游戏模式
 
