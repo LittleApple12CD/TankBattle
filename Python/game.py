@@ -235,6 +235,13 @@ class Game:
         if self.game_over or self.paused:
             return
 
+        if self.player1 and self.player1.alive:
+            self.player1.update(dt)
+
+        # 单人模式：P2 不存在，跳过
+        if not self.single_mode and self.player2 and self.player2.alive:
+            self.player2.update(dt)
+
         # 更新 P1
         if self.player1 and self.player1.alive:
             self.player1.update(dt)
@@ -276,6 +283,15 @@ class Game:
                 self.game_over = True
         else:
             # PVE模式：两个玩家都死亡才结束
+            if self.player1 and not self.player1.alive and self.player2 and not self.player2.alive:
+                self.game_over = True
+
+        if self.single_mode:
+            # 单人模式：P1 死亡则游戏结束
+            if self.player1 and not self.player1.alive:
+                self.game_over = True
+        else:
+            # 双人模式：两个玩家都死亡才结束
             if self.player1 and not self.player1.alive and self.player2 and not self.player2.alive:
                 self.game_over = True
 

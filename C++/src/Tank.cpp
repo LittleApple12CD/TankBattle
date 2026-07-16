@@ -4,12 +4,32 @@
 Tank::Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int pid)
     : x(x), y(y), w(TANK_SIZE), h(TANK_SIZE), color(color), speed(speed),
       player(isPlayer), playerId(pid), dirX(0), dirY(-1),
-      lives(isPlayer ? PLAYER_LIVES : 1), cooldown(0), alive(true) {}
+      lives(isPlayer ? PLAYER_LIVES : 1), cooldown(0), alive(true), frameCounter(0) {}
 
 void Tank::update(float dt) {
     if (cooldown > 0) cooldown -= dt;
-    
-    // list 遍历
+
+    // 记录行驶痕迹
+    frameCounter++;
+    if (frameCounter % 3 == 0 && alive) {
+        TrailPoint tp;
+        tp.x = x + w/2;
+        tp.y = y + h/2;
+        tp.age = 0;
+        trailPoints.push_back(tp);
+    }
+
+    // 更新痕迹
+    for (auto it = trailPoints.begin(); it != trailPoints.end(); ) {
+        it->age += dt;
+        if (it->age >= 1.0f) {
+            it = trailPoints.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // 更新子弹
     for (auto it = bullets.begin(); it != bullets.end(); ) {
         it->update(dt);
         if (!it->isAlive()) {
@@ -21,24 +41,36 @@ void Tank::update(float dt) {
 }
 
 void Tank::draw(sf::RenderWindow& window) {
+    // ===== 行驶痕迹 =====
+    for (const auto& tp : trailPoints) {
+        float alpha = 60 * (1.0f - tp.age / 1.0f);
+        if (alpha > 5.0f) {
+            sf::RectangleShape rect(sf::Vector2f(w, h));
+            rect.setPosition(sf::Vector2f(tp.x - w/2.0f, tp.y - h/2.0f));
+            rect.setFillColor(sf::Color(0, 0, 0, static_cast<uint8_t>(alpha)));
+            window.draw(rect);
+        }
+    }
+
     if (!alive) return;
 
-    // 主体
-    sf::ConvexShape body = create16Shape(x, y, w, h, 4.0f, 12.0f, color);
+    // ===== 坦克主体（16边形圆角） =====
+    float radius = 6.0f;
+    sf::ConvexShape body = create16Shape(x, y, w, h, radius, color);
     window.draw(body);
 
-    // 边框
-    sf::ConvexShape border = create16Border(x, y, w, h, 4.0f, 12.0f);
+    // ===== 边框（细线） =====
+    sf::ConvexShape border = create16Shape(x, y, w, h, radius, sf::Color::Transparent, sf::Color::White, 1.0f);
     window.draw(border);
 
-    // 炮塔
+    // ===== 炮塔 =====
     sf::Vector2f center = getCenter();
     sf::CircleShape turret(w / 5.0f);
     turret.setPosition(sf::Vector2f(center.x - w/5.0f, center.y - h/5.0f));
     turret.setFillColor(sf::Color::White);
     window.draw(turret);
 
-    // 炮管
+    // ===== 炮管 =====
     float endX = center.x + dirX * (w / 2.0f + 2.0f);
     float endY = center.y + dirY * (h / 2.0f + 2.0f);
     sf::Vertex line[2];
@@ -48,7 +80,7 @@ void Tank::draw(sf::RenderWindow& window) {
     line[1].color = sf::Color::White;
     window.draw(line, 2, sf::PrimitiveType::Lines);
 
-    // 玩家编号
+    // ===== 玩家编号 =====
     if (player) {
         sf::Font font;
         if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
@@ -63,7 +95,7 @@ void Tank::draw(sf::RenderWindow& window) {
         }
     }
     
-    // 子弹
+    // ===== 子弹 =====
     for (auto& b : bullets) {
         b.draw(window);
     }

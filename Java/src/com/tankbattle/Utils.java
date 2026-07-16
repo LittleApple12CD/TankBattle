@@ -26,7 +26,7 @@ public class Utils {
 
     // ===== 子弹常量 =====
     public static final int BULLET_SIZE = 8;
-    public static final double BULLET_SPEED = 360.0;
+    public static final double BULLET_SPEED = 270.0;
     public static final int MAX_BULLETS = 3;
 
     // ===== 敌人常量 =====

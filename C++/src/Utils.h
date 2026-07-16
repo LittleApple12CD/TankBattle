@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
+#include <cmath>
 
 const int WINDOW_WIDTH = 1200;
 const int WINDOW_HEIGHT = 800;
@@ -17,7 +18,7 @@ const int PLAYER_LIVES = 3;
 const float SHOT_COOLDOWN = 0.5f;
 
 const int BULLET_SIZE = 8;
-const float BULLET_SPEED = 360.0f;
+const float BULLET_SPEED = 480.0f;
 const int MAX_BULLETS = 3;
 
 const int ENEMY_COUNT = 3;
@@ -51,73 +52,53 @@ inline int clampi(int val, int min, int max) {
 }
 
 // ============================================
-// 创建 16 边形（带圆角效果）
+// 创建 16 边形圆角矩形（稳定版）
 // ============================================
 inline sf::ConvexShape create16Shape(float x, float y, float w, float h,
-                                      float cornerCut, float midLength,
+                                      float radius,
                                       sf::Color fillColor,
                                       sf::Color outlineColor = sf::Color::White,
                                       float outlineThickness = 1.0f) {
+    radius = std::min(radius, std::min(w, h) / 2.0f);
+    
     sf::ConvexShape shape;
-    shape.setPointCount(16);
+    int segments = 4;
+    shape.setPointCount(segments * 4);
+    float pi = 3.14159265f;
 
-    // 顺时针：从顶部中间开始
-    shape.setPoint(0,  sf::Vector2f(x + cornerCut, y));
-    shape.setPoint(1,  sf::Vector2f(x + w/2 - midLength/2, y));
-    shape.setPoint(2,  sf::Vector2f(x + w/2 + midLength/2, y));
-    shape.setPoint(3,  sf::Vector2f(x + w - cornerCut, y));
-    shape.setPoint(4,  sf::Vector2f(x + w, y + cornerCut));
-    shape.setPoint(5,  sf::Vector2f(x + w, y + h/2 - midLength/2));
-    shape.setPoint(6,  sf::Vector2f(x + w, y + h/2 + midLength/2));
-    shape.setPoint(7,  sf::Vector2f(x + w, y + h - cornerCut));
-    shape.setPoint(8,  sf::Vector2f(x + w - cornerCut, y + h));
-    shape.setPoint(9,  sf::Vector2f(x + w/2 + midLength/2, y + h));
-    shape.setPoint(10, sf::Vector2f(x + w/2 - midLength/2, y + h));
-    shape.setPoint(11, sf::Vector2f(x + cornerCut, y + h));
-    shape.setPoint(12, sf::Vector2f(x, y + h - cornerCut));
-    shape.setPoint(13, sf::Vector2f(x, y + h/2 + midLength/2));
-    shape.setPoint(14, sf::Vector2f(x, y + h/2 - midLength/2));
-    shape.setPoint(15, sf::Vector2f(x, y + cornerCut));
+    int idx = 0;
+    // 从左上角开始，精确对齐
+    // 左上角
+    for (int i = 0; i < segments; ++i) {
+        float angle = pi + (i / (float)segments) * pi * 0.5f;
+        float px = x + radius + radius * std::cos(angle);
+        float py = y + radius + radius * std::sin(angle);
+        shape.setPoint(idx++, sf::Vector2f(px, py));
+    }
+    // 右上角
+    for (int i = 0; i < segments; ++i) {
+        float angle = pi * 1.5f + (i / (float)segments) * pi * 0.5f;
+        float px = x + w - radius + radius * std::cos(angle);
+        float py = y + radius + radius * std::sin(angle);
+        shape.setPoint(idx++, sf::Vector2f(px, py));
+    }
+    // 右下角
+    for (int i = 0; i < segments; ++i) {
+        float angle = 0.0f + (i / (float)segments) * pi * 0.5f;
+        float px = x + w - radius + radius * std::cos(angle);
+        float py = y + h - radius + radius * std::sin(angle);
+        shape.setPoint(idx++, sf::Vector2f(px, py));
+    }
+    // 左下角
+    for (int i = 0; i < segments; ++i) {
+        float angle = pi * 0.5f + (i / (float)segments) * pi * 0.5f;
+        float px = x + radius + radius * std::cos(angle);
+        float py = y + h - radius + radius * std::sin(angle);
+        shape.setPoint(idx++, sf::Vector2f(px, py));
+    }
 
     shape.setFillColor(fillColor);
     shape.setOutlineColor(outlineColor);
     shape.setOutlineThickness(outlineThickness);
-
     return shape;
-}
-
-// ============================================
-// 创建 16 边形的边框（比主体大一圈）
-// ============================================
-inline sf::ConvexShape create16Border(float x, float y, float w, float h,
-                                       float cornerCut, float midLength,
-                                       sf::Color outlineColor = sf::Color::White,
-                                       float thickness = 0.0f) {
-    float offset = 1.0f;
-
-    sf::ConvexShape border;
-    border.setPointCount(16);
-
-    border.setPoint(0,  sf::Vector2f(x + cornerCut - offset, y - offset));
-    border.setPoint(1,  sf::Vector2f(x + w/2 - midLength/2, y - offset));
-    border.setPoint(2,  sf::Vector2f(x + w/2 + midLength/2, y - offset));
-    border.setPoint(3,  sf::Vector2f(x + w - cornerCut + offset, y - offset));
-    border.setPoint(4,  sf::Vector2f(x + w + offset, y + cornerCut - offset));
-    border.setPoint(5,  sf::Vector2f(x + w + offset, y + h/2 - midLength/2));
-    border.setPoint(6,  sf::Vector2f(x + w + offset, y + h/2 + midLength/2));
-    border.setPoint(7,  sf::Vector2f(x + w + offset, y + h - cornerCut + offset));
-    border.setPoint(8,  sf::Vector2f(x + w - cornerCut + offset, y + h + offset));
-    border.setPoint(9,  sf::Vector2f(x + w/2 + midLength/2, y + h + offset));
-    border.setPoint(10, sf::Vector2f(x + w/2 - midLength/2, y + h + offset));
-    border.setPoint(11, sf::Vector2f(x + cornerCut - offset, y + h + offset));
-    border.setPoint(12, sf::Vector2f(x - offset, y + h - cornerCut + offset));
-    border.setPoint(13, sf::Vector2f(x - offset, y + h/2 + midLength/2));
-    border.setPoint(14, sf::Vector2f(x - offset, y + h/2 - midLength/2));
-    border.setPoint(15, sf::Vector2f(x - offset, y + cornerCut - offset));
-
-    border.setFillColor(sf::Color::Transparent);
-    border.setOutlineColor(outlineColor);
-    border.setOutlineThickness(thickness);
-
-    return border;
 }

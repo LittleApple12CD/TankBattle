@@ -139,6 +139,9 @@ public class Game {
     public void update(double dt) {
         if (gameOver || paused) return;
 
+        if (player1 != null && player1.alive) player1.update(dt);
+        if (!singleMode && player2 != null && player2.alive) player2.update(dt);
+
         // 更新 P1
         if (player1 != null && player1.alive) {
             player1.update(dt);
@@ -185,6 +188,16 @@ public class Game {
         // 游戏结束检查
         if (pvpMode) {
             if ((player1 != null && !player1.alive) || (player2 != null && !player2.alive)) {
+                gameOver = true;
+            }
+        } else {
+            if (player1 != null && !player1.alive && player2 != null && !player2.alive) {
+                gameOver = true;
+            }
+        }
+
+        if (singleMode) {
+            if (player1 != null && !player1.alive) {
                 gameOver = true;
             }
         } else {

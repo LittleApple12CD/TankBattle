@@ -6,6 +6,7 @@
 Game::Game()
     : player1(nullptr), player2(nullptr), enemySpawnTimer(0),
       score(0), gameOver(false), paused(false), currentMap(0), pvpMode(false),
+      singleMode(false),
       rng(std::random_device{}()), dist(0.0f, 1.0f), intDist(0, 4) {
     initLevel();
 }
@@ -132,7 +133,18 @@ void Game::update(float dt) {
             gameOver = true;
         }
     }
+
+    if (singleMode) {
+        if (player1 && !player1->isAlive()) {
+            gameOver = true;
+        }
+    } else {
+        if (player1 && !player1->isAlive() && player2 && !player2->isAlive()) {
+            gameOver = true;
+        }
+    }
 }
+
 
 void Game::handleBulletCollisions() {
     std::vector<Bullet*> allBullets;
@@ -348,7 +360,7 @@ void Game::drawUI(sf::RenderWindow& window) {
     int uiY = 10;
     
     // Mode
-    std::string modeText = pvpMode ? "PVP" : "PVE";
+    std::string modeText = singleMode ? "Single" : (pvpMode ? "PVP" : "PVE");
     sf::Text modeLabel(font, modeText, 18);
     modeLabel.setFillColor(pvpMode ? COLOR_PVP : COLOR_TEXT);
     modeLabel.setPosition(sf::Vector2f(10, uiY));

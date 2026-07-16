@@ -3,6 +3,7 @@ package com.tankbattle;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import static com.tankbattle.Utils.*;
 
@@ -36,6 +37,14 @@ public class Tank {
         this.cooldown = 0;
         this.alive = true;
         this.bullets = new ArrayList<>();
+        trailPoints = new ArrayList<>();
+    }
+
+    private ArrayList<TrailPoint> trailPoints;
+    private int frameCounter = 0;
+
+    private class TrailPoint {
+        double x, y, age;
     }
 
     public Rectangle getRect() {
@@ -148,10 +157,43 @@ public class Tank {
                 bullets.remove(i);
             }
         }
+
+        frameCounter++;
+        if (frameCounter % 3 == 0 && alive) {
+            TrailPoint tp = new TrailPoint();
+            tp.x = this.x + this.w/2;
+            tp.y = this.y + this.h/2;
+            tp.age = 0;
+            trailPoints.add(tp);
+        }
+
+        Iterator<TrailPoint> it = trailPoints.iterator();
+        while (it.hasNext()) {
+            TrailPoint tp = it.next();
+            tp.age += dt;
+            if (tp.age >= 1.0) {
+                it.remove();
+            }
+        }
     }
 
     public void draw(Graphics2D g) {
-        if (!alive) return;
+        // ===== 行驶痕迹（用同步块 + 复制） =====
+        ArrayList<TrailPoint> trailCopy;
+        synchronized (trailPoints) {
+            trailCopy = new ArrayList<>(trailPoints);
+        }
+    
+        for (TrailPoint tp : trailCopy) {
+            double alpha = 60 * (1 - tp.age / 1.0);
+            if (alpha > 5) {
+                int a = (int) alpha;
+                g.setColor(new Color(0, 0, 0, Math.min(a, 255)));
+                g.fillRect((int) (tp.x - w / 2.0), (int) (tp.y - h / 2.0), w, h);
+            }
+        }
+
+    if (!alive) return;
 
         // 坦克主体
         g.setColor(color);

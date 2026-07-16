@@ -29,6 +29,11 @@ class Tank:
         self.bullets = []
         self.move_buffer = (0, 0)
 
+        # ===== 行驶痕迹 =====
+        self.trail_points = []
+        self._frame_counter = 0
+        self._last_pos = (x, y)  # 用于判断是否在移动
+
     @property
     def rect(self):
         return pygame.Rect(self.x, self.y, self.w, self.h)
@@ -54,6 +59,7 @@ class Tank:
         if total_steps < 1:
             total_steps = 1
 
+        moved = False
         for _ in range(total_steps):
             new_x = self.x + step_dx
             new_y = self.y + step_dy
@@ -74,6 +80,7 @@ class Tank:
             if not blocked:
                 self.x = new_x
                 self.y = new_y
+                moved = True
             else:
                 if dx != 0:
                     test_rect = pygame.Rect(new_x, self.y, self.w, self.h)
@@ -84,6 +91,7 @@ class Tank:
                             break
                     if not blocked:
                         self.x = new_x
+                        moved = True
 
                 if dy != 0:
                     test_rect = pygame.Rect(self.x, new_y, self.w, self.h)
@@ -94,7 +102,21 @@ class Tank:
                             break
                     if not blocked:
                         self.y = new_y
+                        moved = True
                 break
+
+        # 如果移动了，记录痕迹（每3帧记录一次）
+        if moved:
+            self._frame_counter += 1
+            if self._frame_counter % 3 == 0:
+                self.trail_points.append({
+                    'x': self.x + self.w / 2,
+                    'y': self.y + self.h / 2,
+                    'age': 0
+                })
+        else:
+            # 没移动时重置帧计数器，避免静止时还记录
+            self._frame_counter = 0
 
     def shoot(self):
         if self.cooldown > 0:
@@ -105,7 +127,6 @@ class Tank:
         self.cooldown = SHOT_COOLDOWN
         fx, fy = self.get_fire_point()
         
-        # 根据玩家ID选择子弹颜色
         if self.is_player:
             if self.player_id == 1:
                 bullet = Bullet(fx, fy, self.dir, is_player=True, player_id=1, color=COLORS['bullet_p1'])
@@ -121,15 +142,31 @@ class Tank:
         if self.cooldown > 0:
             self.cooldown -= dt
 
+        # 更新痕迹（移除超过1秒的）
+        for t in self.trail_points[:]:
+            t['age'] += dt
+            if t['age'] >= 1.0:
+                self.trail_points.remove(t)
+
         for b in self.bullets[:]:
             b.update(dt)
             if not b.alive:
                 self.bullets.remove(b)
 
     def draw(self, screen):
+        # ===== 先画行驶痕迹 =====
+        for t in self.trail_points:
+            alpha = 60 * (1 - t['age'] / 1.0)
+            if alpha > 5:
+                # 使用半透明黑色矩形
+                surf = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+                surf.fill((0, 0, 0, int(alpha)))
+                screen.blit(surf, (t['x'] - self.w/2, t['y'] - self.h/2))
+
         if not self.alive:
             return
 
+        # 原有绘制代码
         rect = pygame.Rect(self.x, self.y, self.w, self.h)
         pygame.draw.rect(screen, self.color, rect, border_radius=4)
         pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
@@ -141,7 +178,6 @@ class Tank:
         end_y = cy + self.dir[1] * (self.w // 2 + 2)
         pygame.draw.line(screen, (255, 255, 255), (cx, cy), (end_x, end_y), 4)
 
-        # 显示玩家编号
         if self.is_player:
             font = pygame.font.Font(None, 16)
             label = font.render(str(self.player_id), True, (0, 0, 0))
@@ -161,26 +197,54 @@ class Bullet:
         self.player_id = player_id
         self.color = color if color else (255, 255, 200)
         self.alive = True
+        self.trail = []  # 拖尾
 
     @property
     def rect(self):
         return pygame.Rect(self.x, self.y, self.w, self.h)
 
     def update(self, dt):
+        # 添加拖尾粒子
+        self.trail.append({
+            'x': self.x + self.w / 2,
+            'y': self.y + self.h / 2,
+            'size': self.w * 0.6,
+            'age': 0,
+            'lifetime': 0.15
+        })
+
+        # 更新位置
         self.x += self.dir[0] * self.speed * dt
         self.y += self.dir[1] * self.speed * dt
+
+        # 更新拖尾
+        for t in self.trail[:]:
+            t['age'] += dt
+            t['size'] *= (1 - dt / t['lifetime'])
+            if t['age'] >= t['lifetime'] or t['size'] < 0.5:
+                self.trail.remove(t)
 
         if self.x < -20 or self.x > WINDOW_WIDTH + 20 or \
            self.y < -20 or self.y > WINDOW_HEIGHT + 20:
             self.alive = False
 
     def draw(self, screen):
+        # 画拖尾
+        for t in self.trail:
+            alpha = 255 * (1 - t['age'] / t['lifetime'])
+            size = int(t['size'])
+            if size > 0 and alpha > 5:
+                surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+                col = self.color
+                pygame.draw.circle(surf, (col[0], col[1], col[2], int(alpha)), (size, size), size)
+                screen.blit(surf, (int(t['x'] - size), int(t['y'] - size)))
+
+        # 画子弹
         if not self.alive:
             return
-        cx, cy = self.x + self.w // 2, self.y + self.w // 2
+        cx, cy = self.x + self.w // 2, self.y + self.h // 2
         pygame.draw.circle(screen, self.color, (cx, cy), self.w // 2)
         pygame.draw.circle(screen, (255, 255, 255), (cx, cy), self.w // 4)
-
 
 # ---- 墙壁 ----
 class Wall:
