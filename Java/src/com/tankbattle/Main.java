@@ -315,14 +315,16 @@ public class Main extends JPanel implements Runnable, KeyListener {
             JFrame frame = new JFrame("TankBattle - Java");
             Main panel = new Main();
 
-            // 用 ImageIO 加载
             try {
-                Image icon = ImageIO.read(new File("src/com/tankbattle/icon.png"));
-                frame.setIconImage(icon);
+                java.net.URL iconURL = Main.class.getResource("/icon.png");
+                if (iconURL != null) {
+                    Image icon = Toolkit.getDefaultToolkit().getImage(iconURL);
+                    frame.setIconImage(icon);
+                }
             } catch (Exception e) {
-                System.out.println("图标加载失败: " + e.getMessage());
+                // 忽略，没有图标也能运行
             }
-
+            
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setResizable(false);
             frame.getContentPane().add(panel);

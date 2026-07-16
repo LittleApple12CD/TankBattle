@@ -34,7 +34,7 @@ echo Main-Class: com.tankbattle.Main >> MANIFEST.MF
 echo Class-Path: . >> MANIFEST.MF
 
 echo 打包 JAR...
-jar cvfm TankBattle.jar MANIFEST.MF -C out .
+jar cvfm TankBattle.jar MANIFEST.MF -C out . -C src icon.png
 if %errorlevel% neq 0 (
     echo [错误] 打包失败！
     pause
