@@ -79,4 +79,5 @@ TankBattle/
 │ ├── icon.ico
 │ └── Utils.h
 ├── build.sh
+├── icon.png
 └── CMakeLists.txt
