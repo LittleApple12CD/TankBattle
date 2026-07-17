@@ -112,7 +112,7 @@ class TankBattle:
                     dy = 1
 
                 if dx != 0 or dy != 0:
-                    self.game.move_player1(dx, dy)
+                    self.game.move_player1(dx, dy, dt)
 
             # ---- 持续移动 P2 ----
             if not self.game.paused and not self.game.game_over:
@@ -127,7 +127,7 @@ class TankBattle:
                     dy = 1
 
                 if dx != 0 or dy != 0:
-                    self.game.move_player2(dx, dy)
+                    self.game.move_player2(dx, dy, dt)
 
             self.game.update(dt)
             self.game.draw(self.screen)

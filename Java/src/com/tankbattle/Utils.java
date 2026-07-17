@@ -8,8 +8,8 @@ import java.awt.*;
 public class Utils {
 
     // ===== 窗口常量 =====
-    public static final int WINDOW_WIDTH = 1200;
-    public static final int WINDOW_HEIGHT = 800;
+    public static final int WINDOW_WIDTH = 1600;
+    public static final int WINDOW_HEIGHT = 900;
     public static final int FPS = 60;
 
     // ===== 网格常量 =====
@@ -26,14 +26,14 @@ public class Utils {
 
     // ===== 子弹常量 =====
     public static final int BULLET_SIZE = 8;
-    public static final double BULLET_SPEED = 270.0;
+    public static final double BULLET_SPEED = 300.0;
     public static final int MAX_BULLETS = 3;
 
     // ===== 敌人常量 =====
-    public static final int ENEMY_COUNT = 3;
+    public static final int ENEMY_COUNT = 4;
     public static final double ENEMY_SPAWN_INTERVAL = 4.0;
     public static final double AI_DIRECTION_CHANGE = 2.0;
-    public static final double AI_SHOOT_CHANCE = 0.2;
+    public static final double AI_SHOOT_CHANCE = 0.4;
 
     // ===== 移动常量 =====
     public static final double MOVE_STEP = 2.0;   // 添加这一行

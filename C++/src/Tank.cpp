@@ -54,14 +54,10 @@ void Tank::draw(sf::RenderWindow& window) {
 
     if (!alive) return;
 
-    // ===== 坦克主体（16边形圆角） =====
-    float radius = 6.0f;
-    sf::ConvexShape body = create16Shape(x, y, w, h, radius, color);
+    // 主体（20边形圆角）
+    float radius = 4.0f;
+    sf::ConvexShape body = createRoundedRect(x, y, w, h, radius, color);
     window.draw(body);
-
-    // ===== 边框（细线） =====
-    sf::ConvexShape border = create16Shape(x, y, w, h, radius, sf::Color::Transparent, sf::Color::White, 1.0f);
-    window.draw(border);
 
     // ===== 炮塔 =====
     sf::Vector2f center = getCenter();

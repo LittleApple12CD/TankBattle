@@ -46,20 +46,17 @@ class Tank:
         offset = self.w // 2 + 2
         return (cx + self.dir[0] * offset, cy + self.dir[1] * offset)
 
-    def move(self, dx, dy, walls):
+    def move(self, dx, dy, walls, dt):
         if dx == 0 and dy == 0:
             return
 
-        self.move_buffer = (dx, dy)
-        step = MOVE_STEP
-        step_dx = dx * step
-        step_dy = dy * step
-
-        total_steps = int(self.speed / step)
-        if total_steps < 1:
-            total_steps = 1
-
+        # 用 dt 控制速度（像素/秒 → 像素/帧）
         moved = False
+        speed_per_frame = self.speed * dt
+        total_steps = max(1, int(speed_per_frame / MOVE_STEP))
+        step_dx = dx * MOVE_STEP
+        step_dy = dy * MOVE_STEP
+
         for _ in range(total_steps):
             new_x = self.x + step_dx
             new_y = self.y + step_dy
@@ -80,7 +77,6 @@ class Tank:
             if not blocked:
                 self.x = new_x
                 self.y = new_y
-                moved = True
             else:
                 if dx != 0:
                     test_rect = pygame.Rect(new_x, self.y, self.w, self.h)
@@ -91,7 +87,6 @@ class Tank:
                             break
                     if not blocked:
                         self.x = new_x
-                        moved = True
 
                 if dy != 0:
                     test_rect = pygame.Rect(self.x, new_y, self.w, self.h)
@@ -102,7 +97,6 @@ class Tank:
                             break
                     if not blocked:
                         self.y = new_y
-                        moved = True
                 break
 
         # 如果移动了，记录痕迹（每3帧记录一次）

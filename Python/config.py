@@ -3,8 +3,8 @@
 # ========================================
 
 # 窗口
-WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 800
+WINDOW_WIDTH = 1600
+WINDOW_HEIGHT = 900
 
 # 网格布局
 GRID_SIZE = 13
@@ -35,20 +35,20 @@ COLORS = {
 
 # 坦克（使用你的参数）
 TANK_SIZE = 36
-TANK_SPEED = 6                   # 像素/帧，约 360 像素/秒
+TANK_SPEED = 384
 PLAYER_LIVES = 3
 SHOT_COOLDOWN = 0.5
 
 # 子弹（使用你的参数）
 BULLET_SIZE = 8
-BULLET_SPEED = 270               # 像素/秒
+BULLET_SPEED = 300
 MAX_BULLETS = 3
 
 # 敌人（PVE模式）
-ENEMY_COUNT = 3
+ENEMY_COUNT = 4
 ENEMY_SPAWN_INTERVAL = 4.0
 AI_DIRECTION_CHANGE = 2.0
-AI_SHOOT_CHANCE = 0.2
+AI_SHOOT_CHANCE = 0.4
 
 # 步进移动
 MOVE_STEP = 2.0

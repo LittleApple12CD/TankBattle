@@ -12,6 +12,6 @@ void Wall::draw(sf::RenderWindow& window) {
 
     sf::Color fillColor = steel ? COLOR_STEEL : COLOR_WALL;
     float radius = 4.0f;
-    sf::ConvexShape wall = create16Shape(x, y, w, h, radius, fillColor);
+    sf::ConvexShape wall = createRoundedRect(x, y, w, h, radius, fillColor);
     window.draw(wall);
 }

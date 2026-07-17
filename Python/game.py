@@ -382,15 +382,15 @@ class Game:
                 y + random.randint(-15, 15)
             ))
 
-    def move_player1(self, dx, dy):
+    def move_player1(self, dx, dy, dt):
         if self.player1 and self.player1.alive:
             self.player1.dir = (dx, dy)
-            self.player1.move(dx, dy, self.walls)
+            self.player1.move(dx, dy, self.walls, dt)
 
-    def move_player2(self, dx, dy):
+    def move_player2(self, dx, dy, dt):
         if self.player2 and self.player2.alive:
             self.player2.dir = (dx, dy)
-            self.player2.move(dx, dy, self.walls)
+            self.player2.move(dx, dy, self.walls, dt)
 
     def player1_shoot(self):
         if self.player1 and self.player1.alive:

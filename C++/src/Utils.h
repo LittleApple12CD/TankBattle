@@ -3,8 +3,8 @@
 #include <string>
 #include <cmath>
 
-const int WINDOW_WIDTH = 1200;
-const int WINDOW_HEIGHT = 800;
+const int WINDOW_WIDTH = 1600;
+const int WINDOW_HEIGHT = 900;
 const int FPS = 60;
 
 const int GRID_SIZE = 13;
@@ -18,13 +18,13 @@ const int PLAYER_LIVES = 3;
 const float SHOT_COOLDOWN = 0.5f;
 
 const int BULLET_SIZE = 8;
-const float BULLET_SPEED = 480.0f;
+const float BULLET_SPEED = 360.0f;
 const int MAX_BULLETS = 3;
 
-const int ENEMY_COUNT = 3;
+const int ENEMY_COUNT = 4;
 const float ENEMY_SPAWN_INTERVAL = 4.0f;
 const float AI_DIRECTION_CHANGE = 2.0f;
-const float AI_SHOOT_CHANCE = 0.2f;
+const float AI_SHOOT_CHANCE = 0.4f;
 
 const float MOVE_STEP = 2.0f;
 
@@ -52,49 +52,40 @@ inline int clampi(int val, int min, int max) {
 }
 
 // ============================================
-// 创建 16 边形圆角矩形（稳定版）
+// 创建圆角矩形（精确版，20边形，更平滑）
 // ============================================
-inline sf::ConvexShape create16Shape(float x, float y, float w, float h,
-                                      float radius,
-                                      sf::Color fillColor,
-                                      sf::Color outlineColor = sf::Color::White,
-                                      float outlineThickness = 1.0f) {
+inline sf::ConvexShape createRoundedRect(float x, float y, float w, float h,
+                                          float radius,
+                                          sf::Color fillColor,
+                                          sf::Color outlineColor = sf::Color::White,
+                                          float outlineThickness = 1.0f) {
     radius = std::min(radius, std::min(w, h) / 2.0f);
-    
+    int segments = 5; // 每个角5个点，总共20个点，更平滑
+    int totalPoints = segments * 4;
     sf::ConvexShape shape;
-    int segments = 4;
-    shape.setPointCount(segments * 4);
+    shape.setPointCount(totalPoints);
     float pi = 3.14159265f;
 
     int idx = 0;
-    // 从左上角开始，精确对齐
-    // 左上角
-    for (int i = 0; i < segments; ++i) {
-        float angle = pi + (i / (float)segments) * pi * 0.5f;
-        float px = x + radius + radius * std::cos(angle);
-        float py = y + radius + radius * std::sin(angle);
-        shape.setPoint(idx++, sf::Vector2f(px, py));
-    }
-    // 右上角
-    for (int i = 0; i < segments; ++i) {
-        float angle = pi * 1.5f + (i / (float)segments) * pi * 0.5f;
-        float px = x + w - radius + radius * std::cos(angle);
-        float py = y + radius + radius * std::sin(angle);
-        shape.setPoint(idx++, sf::Vector2f(px, py));
-    }
-    // 右下角
-    for (int i = 0; i < segments; ++i) {
-        float angle = 0.0f + (i / (float)segments) * pi * 0.5f;
-        float px = x + w - radius + radius * std::cos(angle);
-        float py = y + h - radius + radius * std::sin(angle);
-        shape.setPoint(idx++, sf::Vector2f(px, py));
-    }
-    // 左下角
-    for (int i = 0; i < segments; ++i) {
-        float angle = pi * 0.5f + (i / (float)segments) * pi * 0.5f;
-        float px = x + radius + radius * std::cos(angle);
-        float py = y + h - radius + radius * std::sin(angle);
-        shape.setPoint(idx++, sf::Vector2f(px, py));
+    // 四个角的圆心和起始角度（逆时针）
+    float centers[4][2] = {
+        {x + radius, y + radius},          // 左上
+        {x + w - radius, y + radius},      // 右上
+        {x + w - radius, y + h - radius},  // 右下
+        {x + radius, y + h - radius}       // 左下
+    };
+    float startAngles[4] = {pi, pi * 1.5f, 0.0f, pi * 0.5f};
+
+    for (int corner = 0; corner < 4; ++corner) {
+        float cx = centers[corner][0];
+        float cy = centers[corner][1];
+        float startAngle = startAngles[corner];
+        for (int i = 0; i < segments; ++i) {
+            float angle = startAngle + (i / (float)segments) * pi * 0.5f;
+            float px = cx + radius * std::cos(angle);
+            float py = cy + radius * std::sin(angle);
+            shape.setPoint(idx++, sf::Vector2f(px, py));
+        }
     }
 
     shape.setFillColor(fillColor);

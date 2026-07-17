@@ -26,7 +26,7 @@ class EnemyAI:
             self.dir_change_timer = AI_DIRECTION_CHANGE + random.random() * 1.0
 
         # 移动
-        self.tank.move(self.direction[0], self.direction[1], self.game.walls)
+        self.tank.move(self.direction[0], self.direction[1], self.game.walls, dt)
 
         # 射击
         self.shoot_timer -= dt
