@@ -27,6 +27,12 @@ public:
     bool isPaused() const { return paused; }
     void setPaused(bool p) { paused = p; }
     bool isGameOver() const { return gameOver; }
+    void setPlayingMode() { menuMode = false; }
+    void setMenuMode() { menuMode = true; }
+    bool isMenuMode() const { return menuMode; }
+
+    void setSingleMode(bool b) { singleMode = b; }
+    void setPvpMode(bool b) { pvpMode = b; }
 
 private:
     std::vector<Wall> walls;
@@ -43,6 +49,7 @@ private:
     int currentMap;
     bool pvpMode;
     bool singleMode;          // 新增
+    bool menuMode;
     std::mt19937 rng;
     std::uniform_real_distribution<float> dist;
     std::uniform_int_distribution<int> intDist;

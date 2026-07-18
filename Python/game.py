@@ -25,9 +25,37 @@ class Game:
         self.pvp_mode = False          # False=PVE合作, True=PVP对战
         self.single_mode = False  # False=双人, True=单人
         self.enemy_count = ENEMY_COUNT  # 单人时敌人翻倍
+        self.menu = None
+        self.state = "playing"
+        self.return_to_menu = False  # 游戏内按 ESC 回到菜单
         
         self._init_fonts()
         self._init_level()
+
+    def init_menu(self):
+        from menu import Menu
+        self.menu = Menu(self.screen)
+        self.state = "menu"
+
+    def start_game(self, mode, game_type):
+        """mode: 'single_player', 'pvp', 'pve'"""
+        # 清理旧游戏状态
+        self._cleanup()
+        # 根据模式设置
+        if mode == "single_player":
+            self.single_mode = True
+            self.pvp_mode = False
+            self.enemy_count = ENEMY_COUNT * 2
+        elif mode == "pvp":
+            self.single_mode = False
+            self.pvp_mode = True
+            self.enemy_count = 0  # PVP 没有敌人
+        elif mode == "pve":
+            self.single_mode = False
+            self.pvp_mode = False
+            self.enemy_count = ENEMY_COUNT
+        self.state = "playing"
+        self.initLevel()
     
     def toggle_single_mode(self):
         """切换单双人模式"""
@@ -232,6 +260,9 @@ class Game:
         self.enemy_ais.append(EnemyAI(tank, self))
 
     def update(self, dt):
+        if self.state != "playing":
+            return
+
         if self.game_over or self.paused:
             return
 
@@ -416,18 +447,15 @@ class Game:
         for wall in self.walls:
             wall.draw(screen)
 
-        # 敌人
         if not self.pvp_mode:
             for enemy in self.enemies:
                 enemy.draw(screen)
 
-        # 玩家
         if self.player1:
             self.player1.draw(screen)
         if self.player2:
             self.player2.draw(screen)
 
-        # 子弹
         if not self.pvp_mode:
             for enemy in self.enemies:
                 for b in enemy.bullets:
@@ -443,6 +471,10 @@ class Game:
             ex.draw(screen)
 
         self._draw_ui(screen)
+
+    def handle_key(self, key):
+        if self.state != "playing":
+            return self.menu.handle_event(pygame.event.Event(pygame.KEYDOWN, key=key))
 
     def _draw_ui(self, screen):
         font = pygame.font.SysFont("Consolas", 18)

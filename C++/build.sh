@@ -185,14 +185,13 @@ compile_mingw() {
     print_step "开始编译..."
     print_info "GCC: $(g++ --version | head -1)"
     
-    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp"
+    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp src/Menu.cpp"
     
     g++ -std=c++17 -O2 -mwindows \
-            src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp \
-            src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp \
-            src/icon.res \
-            -lsfml-graphics -lsfml-window -lsfml-system \
-            -o TankBattle.exe
+        $SOURCES \
+        src/icon.res \
+        -lsfml-graphics -lsfml-window -lsfml-system \
+        -o TankBattle.exe
     
     if [ $? -eq 0 ]; then
         print_success "编译成功！"

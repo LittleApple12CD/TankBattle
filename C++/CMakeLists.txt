@@ -16,6 +16,7 @@ set(SOURCES
     src/Explosion.cpp
     src/EnemyAI.cpp
     src/MapGenerator.cpp
+    src/Menu.cpp
     ${RESOURCES}
 )
 

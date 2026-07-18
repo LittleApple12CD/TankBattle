@@ -30,6 +30,12 @@ public class Game {
 
     private boolean singleMode = false;
 
+    public void setSingleMode(boolean b) { singleMode = b; }
+    public void setPvpMode(boolean b) { pvpMode = b; }
+    public void setPaused(boolean b) { paused = b; }
+    public boolean isPaused() { return paused; }
+    public boolean isGameOver() { return gameOver; }
+
     public void toggleSingleMode() {
         singleMode = !singleMode;
         if (singleMode) {
@@ -37,7 +43,6 @@ public class Game {
         }
         initLevel();
     }
-
 
     public Game() {
         walls = new ArrayList<>();
@@ -344,7 +349,7 @@ public class Game {
 
     // ===== 渲染 =====
 
-    public void draw(Graphics2D g, Font fontNormal, Font fontBig, Font fontSmall) {
+    public void draw(Graphics2D g) {
         // 背景
         g.setColor(COLOR_BG);
         g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -490,17 +495,5 @@ public class Game {
         for (int i = 0; i < controls.length; i++) {
             g.drawString(controls[i], WINDOW_WIDTH - 200, 10 + i * 20 + 14);
         }
-    }
-
-    public boolean isPaused() {
-        return paused;
-    }
-
-    public void setPaused(boolean p) {
-        paused = p;
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
     }
 }

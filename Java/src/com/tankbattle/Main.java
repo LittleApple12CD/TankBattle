@@ -1,19 +1,16 @@
 package com.tankbattle;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 
 import static com.tankbattle.Utils.*;
 
-/**
- * 坦克大战 - 主程序
- */
 public class Main extends JPanel implements Runnable, KeyListener {
 
     private Game game;
+    private Menu menu;
+    private String gameState; // "menu" 或 "playing"
     private Thread gameThread;
     private boolean running;
 
@@ -21,102 +18,38 @@ public class Main extends JPanel implements Runnable, KeyListener {
     private boolean p1Left, p1Right, p1Up, p1Down, p1Shoot;
     private boolean p2Left, p2Right, p2Up, p2Down, p2Shoot;
 
-    // 字体
-    private Font fontNormal;
-    private Font fontBig;
-    private Font fontSmall;
-
     public Main() {
         setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
-        setBackground(COLOR_BG);
+        setBackground(new Color(20, 20, 30));
         setFocusable(true);
         addKeyListener(this);
 
-        // 初始化字体
-        initFonts();
-
         game = new Game();
+        menu = new Menu();
+        gameState = "menu";
         running = true;
 
         gameThread = new Thread(this);
         gameThread.start();
     }
 
-    /**
-     * 初始化字体 - 自动检测系统中文字体
-     */
-    private void initFonts() {
-        // 尝试的中文字体列表（按优先级排序）
-        String[] chineseFonts = {
-            "Microsoft YaHei",      // Windows 微软雅黑
-            "SimHei",               // Windows 黑体
-            "SimSun",               // Windows 宋体
-            "KaiTi",                // Windows 楷体
-            "FangSong",             // Windows 仿宋
-            "PingFang SC",          // macOS 苹方
-            "Hiragino Sans GB",     // macOS
-            "Noto Sans CJK SC",     // Linux 思源黑体
-            "WenQuanYi Micro Hei",  // Linux 文泉驿
-            "Droid Sans Fallback"   // Android
-        };
-
-        // 英文字体（回退）
-        String[] englishFonts = {
-            "Consolas",
-            "Arial",
-            "DejaVu Sans",
-            "SansSerif"
-        };
-
-        // 先尝试中文字体
-        String selectedFont = null;
-        boolean isChinese = true;
-
-        for (String fontName : chineseFonts) {
-            if (isFontAvailable(fontName)) {
-                selectedFont = fontName;
-                break;
-            }
+    private void startGame(String mode) {
+        game.initLevel();
+        game.setPaused(false);
+        gameState = "playing";
+        
+        // 根据模式设置
+        if (mode.equals("single_player")) {
+            game.setSingleMode(true);
+            game.setPvpMode(false);
+        } else if (mode.equals("pvp")) {
+            game.setSingleMode(false);
+            game.setPvpMode(true);
+        } else if (mode.equals("pve")) {
+            game.setSingleMode(false);
+            game.setPvpMode(false);
         }
-
-        // 如果没有中文字体，使用英文字体
-        if (selectedFont == null) {
-            isChinese = false;
-            for (String fontName : englishFonts) {
-                if (isFontAvailable(fontName)) {
-                    selectedFont = fontName;
-                    break;
-                }
-            }
-        }
-
-        // 最终回退
-        if (selectedFont == null) {
-            selectedFont = "SansSerif";
-        }
-
-        // 创建字体
-        int normalSize = 18;
-        int bigSize = 36;
-        int smallSize = 14;
-
-        fontNormal = new Font(selectedFont, Font.PLAIN, normalSize);
-        fontBig = new Font(selectedFont, Font.BOLD, bigSize);
-        fontSmall = new Font(selectedFont, Font.PLAIN, smallSize);
-
-        // 调试输出
-        System.out.println("使用字体: " + selectedFont + " (中文支持: " + isChinese + ")");
-    }
-
-    /**
-     * 检查字体是否可用
-     */
-    private boolean isFontAvailable(String fontName) {
-        Font testFont = new Font(fontName, Font.PLAIN, 12);
-        // 如果字体名称被替换，说明系统不支持
-        return testFont.getFamily().equals(fontName) ||
-               testFont.getFontName().equals(fontName) ||
-               testFont.getName().equals(fontName);
+        repaint();
     }
 
     @Override
@@ -146,9 +79,9 @@ public class Main extends JPanel implements Runnable, KeyListener {
     }
 
     private void update() {
-        double dt = 1.0 / FPS;
-
-        if (!game.isPaused() && !game.isGameOver()) {
+        if (gameState.equals("playing") && !game.isPaused() && !game.isGameOver()) {
+            double dt = 1.0 / FPS;
+            
             // P1 移动
             int dx1 = 0, dy1 = 0;
             if (p1Left) dx1 = -1;
@@ -176,9 +109,9 @@ public class Main extends JPanel implements Runnable, KeyListener {
                 game.player2Shoot();
                 p2Shoot = false;
             }
+            
+            game.update((float)dt);
         }
-
-        game.update(dt);
     }
 
     @Override
@@ -186,7 +119,14 @@ public class Main extends JPanel implements Runnable, KeyListener {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        game.draw(g2d, fontNormal, fontBig, fontSmall);
+    
+        if (gameState.equals("menu")) {
+            // 确保菜单组件尺寸与面板一致
+            menu.setBounds(0, 0, getWidth(), getHeight());
+            menu.paint(g2d);
+        } else {
+            game.draw(g2d);
+        }
     }
 
     // ===== 键盘事件 =====
@@ -195,75 +135,55 @@ public class Main extends JPanel implements Runnable, KeyListener {
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
 
-        switch (key) {
-            case KeyEvent.VK_ESCAPE:
+        if (key == KeyEvent.VK_ESCAPE) {
+            if (gameState.equals("playing")) {
+                gameState = "menu";
+                menu.resetState();
+                game.setPaused(false);
+                repaint();
+                return;
+            } else {
                 running = false;
                 System.exit(0);
-                break;
-            case KeyEvent.VK_P:
-                game.setPaused(!game.isPaused());
-                break;
-            case KeyEvent.VK_R:
-                game.initLevel();
-                p1Left = false;
-                p1Right = false;
-                p1Up = false;
-                p1Down = false;
-                p1Shoot = false;
-                p2Left = false;
-                p2Right = false;
-                p2Up = false;
-                p2Down = false;
-                p2Shoot = false;
-                break;
-            case KeyEvent.VK_G:
-                game.togglePvpMode();
-                p1Left = false;
-                p1Right = false;
-                p1Up = false;
-                p1Down = false;
-                p1Shoot = false;
-                p2Left = false;
-                p2Right = false;
-                p2Up = false;
-                p2Down = false;
-                p2Shoot = false;
-                break;
-            // P1 控制
-            case KeyEvent.VK_LEFT:
-                p1Left = true;
-                break;
-            case KeyEvent.VK_RIGHT:
-                p1Right = true;
-                break;
-            case KeyEvent.VK_UP:
-                p1Up = true;
-                break;
-            case KeyEvent.VK_DOWN:
-                p1Down = true;
-                break;
-            case KeyEvent.VK_SPACE:
-                p1Shoot = true;
-                break;
+            }
+        }
+
+        if (gameState.equals("menu")) {
+            String result = menu.handleKeyPress(key);
+            if (result != null) {
+                if (result.equals("single_player")) {
+                    startGame("single_player");
+                } else if (result.equals("pvp")) {
+                    startGame("pvp");
+                } else if (result.equals("pve")) {
+                    startGame("pve");
+                }
+            }
+            repaint();
+            return;
+        }
+
+        // 游戏中禁用 O 和 G
+        if (key == KeyEvent.VK_O || key == KeyEvent.VK_G) {
+            return;
+        }
+
+        // P1 控制
+        switch (key) {
+            case KeyEvent.VK_LEFT: p1Left = true; break;
+            case KeyEvent.VK_RIGHT: p1Right = true; break;
+            case KeyEvent.VK_UP: p1Up = true; break;
+            case KeyEvent.VK_DOWN: p1Down = true; break;
+            case KeyEvent.VK_SPACE: p1Shoot = true; break;
             // P2 控制
-            case KeyEvent.VK_A:
-                p2Left = true;
-                break;
-            case KeyEvent.VK_D:
-                p2Right = true;
-                break;
-            case KeyEvent.VK_W:
-                p2Up = true;
-                break;
-            case KeyEvent.VK_S:
-                p2Down = true;
-                break;
-            case KeyEvent.VK_J:
-                p2Shoot = true;
-                break;
-            case KeyEvent.VK_O:
-                game.toggleSingleMode();
-                break;
+            case KeyEvent.VK_A: p2Left = true; break;
+            case KeyEvent.VK_D: p2Right = true; break;
+            case KeyEvent.VK_W: p2Up = true; break;
+            case KeyEvent.VK_S: p2Down = true; break;
+            case KeyEvent.VK_J: p2Shoot = true; break;
+            // 其他
+            case KeyEvent.VK_P: game.setPaused(!game.isPaused()); break;
+            case KeyEvent.VK_R: game.initLevel(); break;
         }
     }
 
@@ -272,59 +192,38 @@ public class Main extends JPanel implements Runnable, KeyListener {
         int key = e.getKeyCode();
 
         switch (key) {
-            case KeyEvent.VK_LEFT:
-                p1Left = false;
-                break;
-            case KeyEvent.VK_RIGHT:
-                p1Right = false;
-                break;
-            case KeyEvent.VK_UP:
-                p1Up = false;
-                break;
-            case KeyEvent.VK_DOWN:
-                p1Down = false;
-                break;
-            case KeyEvent.VK_SPACE:
-                p1Shoot = false;
-                break;
-            case KeyEvent.VK_A:
-                p2Left = false;
-                break;
-            case KeyEvent.VK_D:
-                p2Right = false;
-                break;
-            case KeyEvent.VK_W:
-                p2Up = false;
-                break;
-            case KeyEvent.VK_S:
-                p2Down = false;
-                break;
-            case KeyEvent.VK_J:
-                p2Shoot = false;
-                break;
+            case KeyEvent.VK_LEFT: p1Left = false; break;
+            case KeyEvent.VK_RIGHT: p1Right = false; break;
+            case KeyEvent.VK_UP: p1Up = false; break;
+            case KeyEvent.VK_DOWN: p1Down = false; break;
+            case KeyEvent.VK_SPACE: p1Shoot = false; break;
+            case KeyEvent.VK_A: p2Left = false; break;
+            case KeyEvent.VK_D: p2Right = false; break;
+            case KeyEvent.VK_W: p2Up = false; break;
+            case KeyEvent.VK_S: p2Down = false; break;
+            case KeyEvent.VK_J: p2Shoot = false; break;
         }
     }
 
     @Override
     public void keyTyped(KeyEvent e) {}
 
-    // ===== 主函数 =====
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("TankBattle - Java");
+            JFrame frame = new JFrame("Tank Battle - Java");
             Main panel = new Main();
 
+            // 图标
             try {
                 java.net.URL iconURL = Main.class.getResource("/icon.png");
                 if (iconURL != null) {
                     Image icon = Toolkit.getDefaultToolkit().getImage(iconURL);
                     frame.setIconImage(icon);
                 }
-            } catch (Exception e) {
-                // 忽略，没有图标也能运行
+            } catch (Exception ex) {
+                // 忽略
             }
-            
+
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setResizable(false);
             frame.getContentPane().add(panel);
