@@ -18,10 +18,8 @@
 | **空格键** | P1 射击 |
 | **W/A/S/D** | P2 移动 |
 | **J 键** | P2 射击 |
-| **G 键** | 切换 PVP/PVE 模式 |
 | **P 键** | 暂停/继续 |
 | **R 键** | 重新开始（随机换地图） |
-| **O 键** | 切换单人/双人模式 |
 | **ESC 键** | 退出游戏 |
 
 ---
@@ -48,6 +46,7 @@ TankBattle/
 │ ├── entities.py
 │ ├── ai.py
 │ ├── config.py
+│ ├── menu.py
 │ ├── icon.ico
 │ └── package.bat
 │
@@ -62,6 +61,7 @@ TankBattle/
 │ │ ├── EnemyAI.java
 │ │ ├── MapGenerator.java
 │ │ ├── icon.png
+│ │ ├── Menu.java
 │ │ └── Utils.java
 │ ├── compile.bat
 │ └── build.bat
@@ -76,6 +76,7 @@ TankBattle/
 │ ├── Explosion.cpp/.h
 │ ├── EnemyAI.cpp/.h
 │ ├── MapGenerator.cpp/.h
+│ ├── Menu.cpp/.h
 │ ├── icon.ico
 │ └── Utils.h
 ├── build.sh
