@@ -62,6 +62,7 @@ TankBattle/
 │ │ ├── MapGenerator.java
 │ │ ├── icon.png
 │ │ ├── Menu.java
+│ │ ├── PowerUp.java
 │ │ └── Utils.java
 │ ├── compile.bat
 │ └── build.bat
@@ -77,6 +78,7 @@ TankBattle/
 │ ├── EnemyAI.cpp/.h
 │ ├── MapGenerator.cpp/.h
 │ ├── Menu.cpp/.h
+│ ├── PowerUp.cpp/.h
 │ ├── icon.ico
 │ └── Utils.h
 ├── build.sh
