@@ -4,7 +4,7 @@ Bullet::Bullet(float x, float y, float dx, float dy, bool isPlayer, int pid, sf:
     : x(x - BULLET_SIZE/2.0f), y(y - BULLET_SIZE/2.0f),
       w(BULLET_SIZE), h(BULLET_SIZE),
       dx(dx), dy(dy), speed(BULLET_SPEED),
-      player(isPlayer), playerId(pid), color(col), alive(true) {}
+      player(isPlayer), playerId(pid), color(col), alive(true), damage(1) {}
 
 void Bullet::update(float dt) {
     // 添加拖尾粒子

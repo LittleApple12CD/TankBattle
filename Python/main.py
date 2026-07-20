@@ -97,7 +97,6 @@ class TankBattle:
                     if event.key == pygame.K_p:
                         self.game.paused = not self.game.paused
                     elif event.key == pygame.K_r:
-                        self.game = Game()
                         self.game._init_level()
                     
                     # ---- P1 控制 (方向键) ----

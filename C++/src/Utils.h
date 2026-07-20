@@ -18,7 +18,7 @@ const int PLAYER_LIVES = 3;
 const float SHOT_COOLDOWN = 0.5f;
 
 const int BULLET_SIZE = 8;
-const float BULLET_SPEED = 360.0f;
+const float BULLET_SPEED = 480.0f;
 const int MAX_BULLETS = 3;
 
 const int ENEMY_COUNT = 4;

@@ -16,7 +16,6 @@ void Game::initLevel() {
     paused = false;
     score = 0;
     enemySpawnTimer = 0;
-    enemyCount = singleMode ? ENEMY_COUNT * 2 : ENEMY_COUNT;  // 根据模式设置敌人数量
     walls.clear();
     explosions.clear();
     enemies.clear();
@@ -27,6 +26,8 @@ void Game::initLevel() {
     player2 = nullptr;
     currentMap = intDist(rng);
     MapGenerator::generateMap(currentMap, walls);
+    powerups.clear();
+    powerupTimer = 0.0f;
     
     // 玩家1（始终存在）
     float p1x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
@@ -57,7 +58,7 @@ void Game::toggleSingleMode() {
     singleMode = !singleMode;
     if (singleMode) {
         pvpMode = false;      // 单人模式禁用 PVP
-        enemyCount = ENEMY_COUNT * 2;
+        enemyCount = ENEMY_COUNT;
     } else {
         enemyCount = ENEMY_COUNT;
     }
@@ -87,6 +88,8 @@ void Game::spawnEnemy() {
 
 void Game::update(float dt) {
     if (gameOver || paused) return;
+
+    updatePowerups(dt);
     
     if (player1 && player1->isAlive()) player1->update(dt);
     if (player2 && player2->isAlive()) player2->update(dt);
@@ -165,56 +168,110 @@ void Game::handleBulletCollisions() {
         if (!bullet->isAlive()) continue;
         
         bool bulletHit = false;
+        
+        // ===== 子弹 vs 墙壁 =====
         for (auto& wall : walls) {
             if (!wall.isAlive()) continue;
             if (bullet->getRect().findIntersection(wall.getRect()).has_value()) {
-                bullet->setAlive(false);
-                bulletHit = true;
-                if (!wall.isSteel()) wall.setAlive(false);
-                addExplosion(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                // Strength 子弹：爆炸
+                if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                    explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                    bullet->setAlive(false);
+                    bulletHit = true;
+                    if (!wall.isSteel()) wall.setAlive(false);
+                    addExplosion(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                } else {
+                    bullet->setAlive(false);
+                    bulletHit = true;
+                    if (!wall.isSteel()) wall.setAlive(false);
+                    addExplosion(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                }
                 break;
             }
         }
         if (bulletHit || !bullet->isAlive()) continue;
 
+        // ===== PVP 模式 =====
         if (pvpMode) {
             if (bullet->isPlayerBullet() && bullet->getPlayerId() == 1) {
                 if (player2 && player2->isAlive() && bullet->getRect().findIntersection(player2->getRect()).has_value()) {
-                    bullet->setAlive(false);
-                    player2->setLives(player2->getLives() - 1);
-                    addExplosion(player2->getCenter().x, player2->getCenter().y);
-                    if (player2->getLives() <= 0) player2->setAlive(false);
+                    if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                        explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                        bullet->setAlive(false);
+                    } else {
+                        bullet->setAlive(false);
+                        if (player2->effects.find("protection") != player2->effects.end()) {
+                            player2->effects.erase("protection");
+                        } else {
+                            player2->setLives(player2->getLives() - bullet->damage);
+                            addExplosion(player2->getCenter().x, player2->getCenter().y);
+                        }
+                        if (player2->getLives() <= 0) player2->setAlive(false);
+                    }
                     continue;
                 }
             }
             if (bullet->isPlayerBullet() && bullet->getPlayerId() == 2) {
                 if (player1 && player1->isAlive() && bullet->getRect().findIntersection(player1->getRect()).has_value()) {
-                    bullet->setAlive(false);
-                    player1->setLives(player1->getLives() - 1);
-                    addExplosion(player1->getCenter().x, player1->getCenter().y);
-                    if (player1->getLives() <= 0) player1->setAlive(false);
+                    if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                        explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                        bullet->setAlive(false);
+                    } else {
+                        bullet->setAlive(false);
+                        if (player1->effects.find("protection") != player1->effects.end()) {
+                            player1->effects.erase("protection");
+                        } else {
+                            player1->setLives(player1->getLives() - bullet->damage);
+                            addExplosion(player1->getCenter().x, player1->getCenter().y);
+                        }
+                        if (player1->getLives() <= 0) player1->setAlive(false);
+                    }
                     continue;
                 }
             }
         } else {
+            // ===== PVE 模式 =====
             if (bullet->isPlayerBullet()) {
+                // 玩家子弹 vs 敌人
                 for (auto& enemy : enemies) {
                     if (enemy.isAlive() && bullet->getRect().findIntersection(enemy.getRect()).has_value()) {
-                        bullet->setAlive(false);
-                        enemy.setAlive(false);
-                        score += 10;
-                        addExplosion(enemy.getCenter().x, enemy.getCenter().y);
+                        if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                            explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                            bullet->setAlive(false);
+                        } else {
+                            bullet->setAlive(false);
+                            if (enemy.effects.find("protection") != enemy.effects.end()) {
+                                enemy.effects.erase("protection");
+                            } else {
+                                enemy.setLives(enemy.getLives() - bullet->damage);
+                            }
+                            if (enemy.getLives() <= 0) {
+                                enemy.setAlive(false);
+                                score += 10;
+                                addExplosion(enemy.getCenter().x, enemy.getCenter().y);
+                            }
+                        }
                         break;
                     }
                 }
             } else {
+                // 敌人子弹 vs 玩家
                 Tank* players[2] = {player1, player2};
                 for (auto* p : players) {
                     if (p && p->isAlive() && bullet->getRect().findIntersection(p->getRect()).has_value()) {
-                        bullet->setAlive(false);
-                        p->setLives(p->getLives() - 1);
-                        addExplosion(p->getCenter().x, p->getCenter().y);
-                        if (p->getLives() <= 0) p->setAlive(false);
+                        if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                            explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                            bullet->setAlive(false);
+                        } else {
+                            bullet->setAlive(false);
+                            if (p->effects.find("protection") != p->effects.end()) {
+                                p->effects.erase("protection");
+                            } else {
+                                p->setLives(p->getLives() - bullet->damage);
+                                addExplosion(p->getCenter().x, p->getCenter().y);
+                            }
+                            if (p->getLives() <= 0) p->setAlive(false);
+                        }
                         break;
                     }
                 }
@@ -222,6 +279,7 @@ void Game::handleBulletCollisions() {
         }
     }
     
+    // 清理死亡子弹
     if (player1) {
         player1->bullets.remove_if([](const Bullet& b){ return !b.isAlive(); });
     }
@@ -324,6 +382,10 @@ void Game::draw(sf::RenderWindow& window) {
     border.setOutlineThickness(2.0f);
     // border.setCornerRadius(4.0f);  // SFML 3.0 不支持
     window.draw(border);
+
+    for (auto& p : powerups) {
+        p.draw(window);
+    }
 
     // 墙壁
     for (auto& wall : walls) wall.draw(window);
@@ -442,5 +504,146 @@ void Game::drawUI(sf::RenderWindow& window) {
         ctrlText.setFillColor(COLOR_TEXT_DIM);
         ctrlText.setPosition(sf::Vector2f(WINDOW_WIDTH - 200.0f, 10.0f + i*20.0f));
         window.draw(ctrlText);
+    }
+}
+
+void Game::updatePowerups(float dt) {
+    powerupTimer += dt;
+    if (powerupTimer >= powerupInterval && powerups.size() < maxPowerups) {
+        spawnPowerup();
+        powerupTimer = 0.0f;
+    }
+
+    for (auto it = powerups.begin(); it != powerups.end(); ) {
+        if (!it->isAlive()) {
+            it = powerups.erase(it);
+            continue;
+        }
+
+        // 检查所有坦克
+        std::vector<Tank*> allTanks;
+        if (player1 && player1->isAlive()) allTanks.push_back(player1);
+        if (player2 && player2->isAlive()) allTanks.push_back(player2);
+        for (auto& enemy : enemies) {
+            if (enemy.isAlive()) allTanks.push_back(&enemy);
+        }
+
+        bool picked = false;
+        for (Tank* tank : allTanks) {
+            if (it->getRect().findIntersection(tank->getRect()).has_value()) {
+                applyPowerup(tank, &(*it));
+                it->setAlive(false);
+                picked = true;
+                break;
+            }
+        }
+
+        if (picked) {
+            it = powerups.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Game::spawnPowerup() {
+    int margin = 40;
+    char types[] = {'S', 'P', 'H', 'T'};
+    for (int attempt = 0; attempt < 20; ++attempt) {
+        float x = GRID_OFFSET_X + margin +
+                  static_cast<float>(rand()) / RAND_MAX * (GRID_SIZE * CELL_SIZE - margin * 2 - 24);
+        float y = GRID_OFFSET_Y + margin +
+                  static_cast<float>(rand()) / RAND_MAX * (GRID_SIZE * CELL_SIZE - margin * 2 - 24);
+        sf::FloatRect testRect(sf::Vector2f(x, y), sf::Vector2f(24, 24));
+        bool blocked = false;
+        for (auto& wall : walls) {
+            if (wall.isAlive() && testRect.findIntersection(wall.getRect()).has_value()) {
+                blocked = true;
+                break;
+            }
+        }
+        if (!blocked) {
+            char type = types[rand() % 4];
+            powerups.emplace_back(x, y, type);
+            return;
+        }
+    }
+}
+
+void Game::applyPowerup(Tank* tank, PowerUp* powerup) {
+    char type = powerup->getType();
+    switch (type) {
+        case 'H':
+            tank->setLives(std::min(tank->getLives() + 1, 5));
+            break;
+        case 'S':
+            tank->effects["speed"] = 5.0f;
+            break;
+        case 'P':
+            tank->effects["protection"] = 5.0f;
+            break;
+        case 'T':
+            tank->effects["strength"] = 5.0f;
+            break;
+    }
+}
+
+void Game::explodeAt(float x, float y) {
+    float radius = TANK_SIZE * 2.0f;
+
+    // 伤害敌人
+    for (auto& enemy : enemies) {
+        if (!enemy.isAlive()) continue;
+        sf::Vector2f eCenter = enemy.getCenter();
+        float dist = std::sqrt(std::pow(eCenter.x - x, 2) + std::pow(eCenter.y - y, 2));
+        if (dist <= radius) {
+            if (enemy.effects.find("protection") != enemy.effects.end()) {
+                enemy.effects.erase("protection");
+            } else {
+                enemy.setLives(enemy.getLives() - 2);
+                if (enemy.getLives() <= 0) {
+                    enemy.setAlive(false);
+                    score += 10;
+                    addExplosion(eCenter.x, eCenter.y);
+                }
+            }
+        }
+    }
+
+    // PVP 模式：伤害玩家
+    if (pvpMode) {
+        for (Tank* player : {player1, player2}) {
+            if (!player || !player->isAlive()) continue;
+            sf::Vector2f pCenter = player->getCenter();
+            float dist = std::sqrt(std::pow(pCenter.x - x, 2) + std::pow(pCenter.y - y, 2));
+            if (dist <= radius) {
+                if (player->effects.find("protection") != player->effects.end()) {
+                    player->effects.erase("protection");
+                } else {
+                    player->setLives(player->getLives() - 2);
+                    addExplosion(pCenter.x, pCenter.y);
+                    if (player->getLives() <= 0) {
+                        player->setAlive(false);
+                    }
+                }
+            }
+        }
+    }
+
+    // 摧毁普通墙壁
+    for (auto& wall : walls) {
+        if (!wall.isAlive() || wall.isSteel()) continue;
+        sf::Vector2f wCenter(wall.x + wall.w/2.0f, wall.y + wall.h/2.0f);
+        float dist = std::sqrt(std::pow(wCenter.x - x, 2) + std::pow(wCenter.y - y, 2));
+        if (dist <= radius) {
+            wall.setAlive(false);
+        }
+    }
+
+    // 爆炸特效
+    for (int i = 0; i < 8; ++i) {
+        float ox = x + (static_cast<float>(rand()) / RAND_MAX - 0.5f) * radius;
+        float oy = y + (static_cast<float>(rand()) / RAND_MAX - 0.5f) * radius;
+        addExplosion(ox, oy);
     }
 }

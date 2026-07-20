@@ -9,6 +9,16 @@ Tank::Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int pi
 void Tank::update(float dt) {
     if (cooldown > 0) cooldown -= dt;
 
+    // 更新效果
+    for (auto it = effects.begin(); it != effects.end(); ) {
+        it->second -= dt;
+        if (it->second <= 0) {
+            it = effects.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
     // 记录行驶痕迹
     frameCounter++;
     if (frameCounter % 3 == 0 && alive) {
@@ -41,9 +51,9 @@ void Tank::update(float dt) {
 }
 
 void Tank::draw(sf::RenderWindow& window) {
-    // ===== 行驶痕迹 =====
+    // ===== 痕迹 =====
     for (const auto& tp : trailPoints) {
-        float alpha = 60 * (1.0f - tp.age / 1.0f);
+        float alpha = 60.0f * (1.0f - tp.age / 1.0f);
         if (alpha > 5.0f) {
             sf::RectangleShape rect(sf::Vector2f(w, h));
             rect.setPosition(sf::Vector2f(tp.x - w/2.0f, tp.y - h/2.0f));
@@ -54,9 +64,19 @@ void Tank::draw(sf::RenderWindow& window) {
 
     if (!alive) return;
 
-    // 主体（20边形圆角）
+    // ===== Strength 缩放 =====
+    float scale = getSizeScale();
+    int wDraw = static_cast<int>(w * scale);
+    int hDraw = static_cast<int>(h * scale);
+    int xDraw = static_cast<int>(x - (wDraw - w) / 2.0f);
+    int yDraw = static_cast<int>(y - (hDraw - h) / 2.0f);
+
+    // ===== 主体 =====
     float radius = 4.0f;
-    sf::ConvexShape body = createRoundedRect(x, y, w, h, radius, color);
+    float cornerRadius = std::min(radius, std::min(wDraw, hDraw) / 2.0f);
+    sf::ConvexShape body = createRoundedRect(xDraw, yDraw, wDraw, hDraw, cornerRadius, color);
+    body.setOutlineColor(isProtected() ? sf::Color::White : sf::Color::White);
+    body.setOutlineThickness(isProtected() ? 3.0f : 1.0f);
     window.draw(body);
 
     // ===== 炮塔 =====
@@ -79,18 +99,17 @@ void Tank::draw(sf::RenderWindow& window) {
     // ===== 玩家编号 =====
     if (player) {
         sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-            font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
+        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
             sf::Text text(font, std::to_string(playerId), 14);
             text.setFillColor(sf::Color::Black);
             text.setStyle(sf::Text::Bold);
             sf::FloatRect bounds = text.getLocalBounds();
             text.setPosition(sf::Vector2f(center.x - bounds.size.x/2.0f,
-                                          center.y - bounds.size.y/2.0f - 2));
+                                          center.y - bounds.size.y/2.0f - 2.0f));
             window.draw(text);
         }
     }
-    
+
     // ===== 子弹 =====
     for (auto& b : bullets) {
         b.draw(window);
@@ -100,10 +119,11 @@ void Tank::draw(sf::RenderWindow& window) {
 void Tank::move(int dx, int dy, std::vector<Wall>& walls) {
     if (dx == 0 && dy == 0) return;
     
+    float currentSpeed = speed * getSpeedMultiplier();
     float step = MOVE_STEP;
     float stepDx = dx * step;
     float stepDy = dy * step;
-    int totalSteps = static_cast<int>(speed / step);
+    int totalSteps = static_cast<int>(currentSpeed / step);
     if (totalSteps < 1) totalSteps = 1;
 
     for (int i = 0; i < totalSteps; ++i) {
@@ -155,19 +175,31 @@ void Tank::move(int dx, int dy, std::vector<Wall>& walls) {
     }
 }
 
-void Tank::shoot() {
-    if (cooldown > 0) return;
-    if (bullets.size() >= MAX_BULLETS) return;
-    
+Bullet* Tank::shoot() {
+    if (cooldown > 0) return nullptr;
+    if (bullets.size() >= MAX_BULLETS) return nullptr;
+
     cooldown = SHOT_COOLDOWN;
     sf::Vector2f firePoint = getFirePoint();
+
+    float bulletSpeed = BULLET_SPEED * getBulletSpeedMultiplier();
+    int bulletSize = static_cast<int>(BULLET_SIZE * getSizeScale());
+    int bulletDamage = getBulletDamage();
+
     sf::Color bulletColor;
     if (player) {
         bulletColor = (playerId == 1) ? COLOR_BULLET_P1 : COLOR_BULLET_P2;
     } else {
         bulletColor = COLOR_BULLET_ENEMY;
     }
+
     bullets.emplace_back(firePoint.x, firePoint.y, dirX, dirY, player, playerId, bulletColor);
+    Bullet& bullet = bullets.back();
+    bullet.speed = bulletSpeed;
+    bullet.w = bulletSize;
+    bullet.h = bulletSize;
+    bullet.damage = bulletDamage;
+    return &bullet;
 }
 
 sf::FloatRect Tank::getRect() const {

@@ -7,7 +7,7 @@ import static com.tankbattle.Utils.*;
 
 public class Menu extends JPanel {
     private String[] mainItems = {"Single Player", "Multiplayer", "Mod", "Settings", "Exit"};
-    private String[] multiItems = {"Local", "Lan", "Online", "Back"};
+    private String[] multiItems = {"Local", "Lan", "Server", "Online", "Back"};
     private String[] modeItems = {"PVP", "PVE", "Back"};
 
     private String[] currentItems = mainItems;

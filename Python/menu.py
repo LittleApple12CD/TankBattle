@@ -11,7 +11,7 @@ class Menu:
         self.font_sub = pygame.font.Font(None, 28)
 
         self.main_items = ["Single Player", "Multiplayer", "Mod", "Settings","Exit"]
-        self.multi_items = ["Local", "Lan", "Online", "Back"]
+        self.multi_items = ["Local", "Lan", "Server", "Online", "Back"]
         self.mode_items = ["PVP", "PVE", "Back"]
 
         self.state = "main"

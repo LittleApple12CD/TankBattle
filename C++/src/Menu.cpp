@@ -3,13 +3,14 @@
 
 Menu::Menu() : state(MAIN), selected(0) {
     mainItems = {"Single Player", "Multiplayer", "Mod", "Settings", "Exit"};
-    multiItems = {"Local", "Lan", "Online", "Back"};
+    multiItems = {"Local", "Lan", "Server", "Online", "Back"};
     modeItems = {"PVP", "PVE", "Back"};
     currentItems = &mainItems;
 
-    // SFML 3.0: openFromFile 代替 loadFromFile
-    if (!font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
-        font.openFromFile("C:/Windows/Fonts/consola.ttf");
+    // 加载字体
+    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial/arial.ttf");
+    if (!loaded) {
+        loaded = font.openFromFile("C:/Windows/Fonts/consola.ttf");
     }
     fontTitle = font;
 }

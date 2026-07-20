@@ -1,6 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <list>
+#include <map>
+#include <string>
 #include "Utils.h"
 #include "Bullet.h"
 #include "Wall.h"
@@ -17,7 +19,7 @@ public:
     void update(float dt);
     void draw(sf::RenderWindow& window);
     void move(int dx, int dy, std::vector<Wall>& walls);
-    void shoot();
+    Bullet* shoot();
     sf::FloatRect getRect() const;
     sf::Vector2f getCenter() const;
     sf::Vector2f getFirePoint() const;
@@ -30,6 +32,29 @@ public:
     std::list<Bullet> bullets;
     std::list<TrailPoint> trailPoints;  // 行驶痕迹
     int frameCounter;                    // 痕迹帧计数器
+
+    // ===== 道具效果 =====
+    std::map<std::string, float> effects;
+
+    bool isProtected() const {
+        return effects.find("protection") != effects.end();
+    }
+
+    float getSpeedMultiplier() const {
+        return (effects.find("speed") != effects.end()) ? 1.5f : 1.0f;
+    }
+
+    float getBulletSpeedMultiplier() const {
+        return (effects.find("speed") != effects.end()) ? 1.5f : 1.0f;
+    }
+
+    float getSizeScale() const {
+        return (effects.find("strength") != effects.end()) ? 1.5f : 1.0f;
+    }
+
+    int getBulletDamage() const {
+        return (effects.find("strength") != effects.end()) ? 2 : 1;
+    }
 
 private:
     float x, y, w, h;

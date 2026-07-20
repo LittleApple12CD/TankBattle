@@ -28,6 +28,7 @@ class Tank:
         self.alive = True
         self.bullets = []
         self.move_buffer = (0, 0)
+        self.effects = {}
 
         # ===== 行驶痕迹 =====
         self.trail_points = []
@@ -50,9 +51,10 @@ class Tank:
         if dx == 0 and dy == 0:
             return
 
-        # 用 dt 控制速度（像素/秒 → 像素/帧）
         moved = False
-        speed_per_frame = self.speed * dt
+        speed_multiplier = 1.5 if 'speed' in self.effects else 1.0
+        current_speed = self.speed * speed_multiplier
+        speed_per_frame = current_speed * dt
         total_steps = max(1, int(speed_per_frame / MOVE_STEP))
         step_dx = dx * MOVE_STEP
         step_dy = dy * MOVE_STEP
@@ -77,6 +79,7 @@ class Tank:
             if not blocked:
                 self.x = new_x
                 self.y = new_y
+                moved = True
             else:
                 if dx != 0:
                     test_rect = pygame.Rect(new_x, self.y, self.w, self.h)
@@ -87,6 +90,7 @@ class Tank:
                             break
                     if not blocked:
                         self.x = new_x
+                        moved = True   # ← 加这行
 
                 if dy != 0:
                     test_rect = pygame.Rect(self.x, new_y, self.w, self.h)
@@ -97,9 +101,9 @@ class Tank:
                             break
                     if not blocked:
                         self.y = new_y
+                        moved = True   # ← 加这行
                 break
 
-        # 如果移动了，记录痕迹（每3帧记录一次）
         if moved:
             self._frame_counter += 1
             if self._frame_counter % 3 == 0:
@@ -109,7 +113,6 @@ class Tank:
                     'age': 0
                 })
         else:
-            # 没移动时重置帧计数器，避免静止时还记录
             self._frame_counter = 0
 
     def shoot(self):
@@ -120,21 +123,34 @@ class Tank:
 
         self.cooldown = SHOT_COOLDOWN
         fx, fy = self.get_fire_point()
-        
+
+        # 默认伤害 = 1，Strength 时 = 2
+        bullet_damage = 2 if 'strength' in self.effects else 1
+        bullet_speed = BULLET_SPEED * (1.5 if 'speed' in self.effects else 1.0)
+        bullet_size = int(BULLET_SIZE * (1.5 if 'strength' in self.effects else 1.0))
+    
         if self.is_player:
             if self.player_id == 1:
-                bullet = Bullet(fx, fy, self.dir, is_player=True, player_id=1, color=COLORS['bullet_p1'])
+                bullet = Bullet(fx, fy, self.dir, is_player=True, player_id=1, 
+                               color=COLORS['bullet_p1'], size=bullet_size, damage=bullet_damage, speed=bullet_speed)
             else:
-                bullet = Bullet(fx, fy, self.dir, is_player=True, player_id=2, color=COLORS['bullet_p2'])
+                bullet = Bullet(fx, fy, self.dir, is_player=True, player_id=2,
+                               color=COLORS['bullet_p2'], size=bullet_size, damage=bullet_damage, speed=bullet_speed)
         else:
-            bullet = Bullet(fx, fy, self.dir, is_player=False, color=COLORS['bullet_enemy'])
-        
+            bullet = Bullet(fx, fy, self.dir, is_player=False,
+                           color=COLORS['bullet_enemy'], size=bullet_size, damage=bullet_damage, speed=bullet_speed)
+    
         self.bullets.append(bullet)
         return bullet
 
     def update(self, dt):
         if self.cooldown > 0:
             self.cooldown -= dt
+
+        for effect in list(self.effects.keys()):
+            self.effects[effect] -= dt
+            if self.effects[effect] <= 0:
+                del self.effects[effect]
 
         # 更新痕迹（移除超过1秒的）
         for t in self.trail_points[:]:
@@ -159,19 +175,32 @@ class Tank:
 
         if not self.alive:
             return
+        
+        # 计算缩放（Strength）
+        scale = 1.5 if 'strength' in self.effects else 1.0
+        w_draw = int(self.w * scale)
+        h_draw = int(self.h * scale)
+        x_draw = self.x - (w_draw - self.w) // 2
+        y_draw = self.y - (h_draw - self.h) // 2
+        rect = pygame.Rect(x_draw, y_draw, w_draw, h_draw)
 
-        # 原有绘制代码
-        rect = pygame.Rect(self.x, self.y, self.w, self.h)
+        # 主体
         pygame.draw.rect(screen, self.color, rect, border_radius=4)
+        # 普通边框
         pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=4)
 
+        # Protection：白色边框（加粗）
+        if 'protection' in self.effects:
+            pygame.draw.rect(screen, (255, 255, 255), rect, 3, border_radius=4)
+
+        # 炮塔、炮管不变（使用原本的 get_center 位置）
         cx, cy = self.get_center()
         pygame.draw.circle(screen, (255, 255, 255), (cx, cy), self.w // 5)
-
         end_x = cx + self.dir[0] * (self.w // 2 + 2)
         end_y = cy + self.dir[1] * (self.w // 2 + 2)
         pygame.draw.line(screen, (255, 255, 255), (cx, cy), (end_x, end_y), 4)
 
+        # 玩家编号
         if self.is_player:
             font = pygame.font.Font(None, 16)
             label = font.render(str(self.player_id), True, (0, 0, 0))
@@ -180,18 +209,22 @@ class Tank:
 
 # ---- 子弹 ----
 class Bullet:
-    def __init__(self, x, y, direction, is_player=True, player_id=1, color=None):
-        self.x = x - BULLET_SIZE // 2
-        self.y = y - BULLET_SIZE // 2
-        self.w = BULLET_SIZE
-        self.h = BULLET_SIZE
+    def __init__(self, x, y, direction, is_player=True, player_id=1, color=None,
+                 speed=BULLET_SPEED, size=None, damage=1):
+        if size is None:
+            size = BULLET_SIZE
+        self.x = x - size // 2
+        self.y = y - size // 2
+        self.w = size
+        self.h = size
         self.dir = direction
-        self.speed = BULLET_SPEED
+        self.speed = speed
         self.is_player = is_player
         self.player_id = player_id
         self.color = color if color else (255, 255, 200)
         self.alive = True
-        self.trail = []  # 拖尾
+        self.damage = damage
+        self.trail = []
 
     @property
     def rect(self):
@@ -295,3 +328,36 @@ class Explosion:
         idx = min(int(progress * len(colors)), len(colors) - 1)
         color = colors[idx]
         pygame.draw.circle(screen, color, (int(self.x), int(self.y)), r)
+
+# ---- 道具 ----
+class PowerUp:
+    def __init__(self, x, y, ptype):
+        self.x = x
+        self.y = y
+        self.w = 24
+        self.h = 24
+        self.ptype = ptype  # 'S', 'P', 'H', 'T'
+        self.alive = True
+        
+        self.color_map = {
+            'S': (50, 150, 255),   # 蓝色 - Speed
+            'P': (255, 255, 255),  # 白色 - Protection
+            'H': (255, 50, 50),    # 红色 - Health
+            'T': (255, 150, 50)    # 橙色 - Strength
+        }
+
+    def get_rect(self):
+        return pygame.Rect(self.x, self.y, self.w, self.h)
+
+    def draw(self, screen):
+        if not self.alive:
+            return
+        
+        color = self.color_map.get(self.ptype, (200, 200, 200))
+        pygame.draw.rect(screen, color, (self.x, self.y, self.w, self.h))
+        pygame.draw.rect(screen, (255, 255, 255), (self.x, self.y, self.w, self.h), 1)
+    
+        font = pygame.font.Font(None, 20)
+        text = font.render(self.ptype, True, (0, 0, 0))
+        text_rect = text.get_rect(center=(self.x + self.w/2, self.y + self.h/2))
+        screen.blit(text, text_rect)

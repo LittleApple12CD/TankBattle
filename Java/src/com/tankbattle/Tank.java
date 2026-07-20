@@ -4,12 +4,11 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
 
 import static com.tankbattle.Utils.*;
 
-/**
- * 坦克类（P1/P2/敌人共用）
- */
 public class Tank {
     public double x, y;
     public int w, h;
@@ -22,6 +21,36 @@ public class Tank {
     public double cooldown;
     public boolean alive;
     public List<Bullet> bullets;
+    public java.util.Map<String, Float> effects = new java.util.HashMap<>();
+
+    // ===== 行驶痕迹 =====
+    private ArrayList<TrailPoint> trailPoints;
+    private int frameCounter = 0;
+
+    private class TrailPoint {
+        double x, y, age;
+    }
+
+    // ===== 道具辅助方法 =====
+    public boolean isProtected() {
+        return effects.containsKey("protection");
+    }
+
+    public float getSpeedMultiplier() {
+        return effects.containsKey("speed") ? 1.5f : 1.0f;
+    }
+
+    public float getBulletSpeedMultiplier() {
+        return effects.containsKey("speed") ? 1.5f : 1.0f;
+    }
+
+    public float getSizeScale() {
+        return effects.containsKey("strength") ? 1.5f : 1.0f;
+    }
+
+    public int getBulletDamage() {
+        return effects.containsKey("strength") ? 2 : 1;
+    }
 
     public Tank(double x, double y, Color color, double speed, boolean isPlayer, int playerId) {
         this.x = x;
@@ -37,14 +66,7 @@ public class Tank {
         this.cooldown = 0;
         this.alive = true;
         this.bullets = new ArrayList<>();
-        trailPoints = new ArrayList<>();
-    }
-
-    private ArrayList<TrailPoint> trailPoints;
-    private int frameCounter = 0;
-
-    private class TrailPoint {
-        double x, y, age;
+        this.trailPoints = new ArrayList<>();
     }
 
     public Rectangle getRect() {
@@ -64,12 +86,18 @@ public class Tank {
     public void move(int dx, int dy, java.util.List<Wall> walls) {
         if (dx == 0 && dy == 0) return;
 
+        // 应用 Speed 效果
+        float speedMultiplier = effects.containsKey("speed") ? 1.5f : 1.0f;
+        float currentSpeed = (float)(this.speed * speedMultiplier);
+
         double step = MOVE_STEP;
         double stepDx = dx * step;
         double stepDy = dy * step;
 
-        int totalSteps = (int) (speed / step);
+        int totalSteps = (int)(currentSpeed / step);
         if (totalSteps < 1) totalSteps = 1;
+
+        boolean moved = false;
 
         for (int i = 0; i < totalSteps; i++) {
             double newX = x + stepDx;
@@ -93,8 +121,8 @@ public class Tank {
             if (!blocked) {
                 x = newX;
                 y = newY;
+                moved = true;
             } else {
-                // 单轴尝试
                 if (dx != 0) {
                     testRect = new Rectangle((int) newX, (int) y, w, h);
                     blocked = false;
@@ -106,6 +134,7 @@ public class Tank {
                     }
                     if (!blocked) {
                         x = newX;
+                        moved = true;
                     }
                 }
                 if (dy != 0) {
@@ -119,10 +148,25 @@ public class Tank {
                     }
                     if (!blocked) {
                         y = newY;
+                        moved = true;
                     }
                 }
                 break;
             }
+        }
+
+        // 记录痕迹
+        if (moved) {
+            frameCounter++;
+            if (frameCounter % 3 == 0 && alive) {
+                TrailPoint tp = new TrailPoint();
+                tp.x = this.x + this.w / 2.0;
+                tp.y = this.y + this.h / 2.0;
+                tp.age = 0;
+                trailPoints.add(tp);
+            }
+        } else {
+            frameCounter = 0;
         }
     }
 
@@ -133,6 +177,10 @@ public class Tank {
         cooldown = SHOT_COOLDOWN;
         Utils.Vec2 firePoint = getFirePoint();
 
+        float bulletSpeed = (float)(BULLET_SPEED * getBulletSpeedMultiplier());
+        int bulletSize = (int)(BULLET_SIZE * getSizeScale());
+        int bulletDamage = getBulletDamage();
+
         Color bulletColor;
         if (isPlayer) {
             bulletColor = (playerId == 1) ? COLOR_BULLET_P1 : COLOR_BULLET_P2;
@@ -141,15 +189,36 @@ public class Tank {
         }
 
         Bullet bullet = new Bullet(firePoint.x, firePoint.y, dir, isPlayer, playerId, bulletColor);
+        bullet.speed = bulletSpeed;
+        bullet.w = bulletSize;
+        bullet.h = bulletSize;
+        bullet.damage = bulletDamage;
         bullets.add(bullet);
         return bullet;
     }
 
     public void update(double dt) {
-        if (cooldown > 0) {
-            cooldown -= dt;
+        if (cooldown > 0) cooldown -= dt;
+
+        // 更新道具效果
+        for (Iterator<Map.Entry<String, Float>> it = effects.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<String, Float> e = it.next();
+            e.setValue(e.getValue() - (float)dt);
+            if (e.getValue() <= 0) {
+                it.remove();
+            }
         }
 
+        // 更新痕迹
+        for (Iterator<TrailPoint> it = trailPoints.iterator(); it.hasNext();) {
+            TrailPoint tp = it.next();
+            tp.age += dt;
+            if (tp.age >= 1.0) {
+                it.remove();
+            }
+        }
+
+        // 更新子弹
         for (int i = bullets.size() - 1; i >= 0; i--) {
             Bullet b = bullets.get(i);
             b.update(dt);
@@ -157,34 +226,11 @@ public class Tank {
                 bullets.remove(i);
             }
         }
-
-        frameCounter++;
-        if (frameCounter % 3 == 0 && alive) {
-            TrailPoint tp = new TrailPoint();
-            tp.x = this.x + this.w/2;
-            tp.y = this.y + this.h/2;
-            tp.age = 0;
-            trailPoints.add(tp);
-        }
-
-        Iterator<TrailPoint> it = trailPoints.iterator();
-        while (it.hasNext()) {
-            TrailPoint tp = it.next();
-            tp.age += dt;
-            if (tp.age >= 1.0) {
-                it.remove();
-            }
-        }
     }
 
     public void draw(Graphics2D g) {
-        // ===== 行驶痕迹（用同步块 + 复制） =====
-        ArrayList<TrailPoint> trailCopy;
-        synchronized (trailPoints) {
-            trailCopy = new ArrayList<>(trailPoints);
-        }
-    
-        for (TrailPoint tp : trailCopy) {
+        // ===== 行驶痕迹 =====
+        for (TrailPoint tp : trailPoints) {
             double alpha = 60 * (1 - tp.age / 1.0);
             if (alpha > 5) {
                 int a = (int) alpha;
@@ -193,29 +239,45 @@ public class Tank {
             }
         }
 
-    if (!alive) return;
+        if (!alive) return;
 
-        // 坦克主体
+        // ===== Strength 缩放 =====
+        float scale = getSizeScale();
+        int wDraw = (int)(w * scale);
+        int hDraw = (int)(h * scale);
+        int xDraw = (int)(x - (wDraw - w) / 2.0);
+        int yDraw = (int)(y - (hDraw - h) / 2.0);
+
+        // ===== 主体 =====
         g.setColor(color);
-        g.fillRoundRect((int) x, (int) y, w, h, 6, 6);
-        g.setColor(Color.WHITE);
-        g.drawRoundRect((int) x, (int) y, w, h, 6, 6);
+        g.fillRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
 
-        // 炮塔
+        // ===== 边框 =====
+        if (isProtected()) {
+            g.setColor(Color.WHITE);
+            g.setStroke(new BasicStroke(3));
+            g.drawRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
+            g.setStroke(new BasicStroke(1));
+        } else {
+            g.setColor(Color.WHITE);
+            g.drawRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
+        }
+
+        // ===== 炮塔 =====
         Utils.Vec2 center = getCenter();
         int cx = (int) center.x;
         int cy = (int) center.y;
         g.setColor(Color.WHITE);
         g.fillOval(cx - w / 6, cy - w / 6, w / 3, h / 3);
 
-        // 炮管
+        // ===== 炮管 =====
         int endX = cx + (int) (dir.x * (w / 2.0 + 2));
         int endY = cy + (int) (dir.y * (h / 2.0 + 2));
         g.setStroke(new BasicStroke(4));
         g.drawLine(cx, cy, endX, endY);
         g.setStroke(new BasicStroke(1));
 
-        // 玩家编号
+        // ===== 玩家编号 =====
         if (isPlayer) {
             g.setColor(Color.BLACK);
             g.setFont(new Font("Consolas", Font.BOLD, 14));

@@ -18,6 +18,7 @@ public class Bullet {
     public int playerId;
     public Color color;
     public boolean alive;
+    public int damage = 1;
 
     // ===== 拖尾 =====
     private static class TrailParticle {
@@ -34,12 +35,12 @@ public class Bullet {
         this.w = BULLET_SIZE;
         this.h = BULLET_SIZE;
         this.dir = dir;
-        this.speed = BULLET_SPEED;
         this.isPlayer = isPlayer;
         this.playerId = playerId;
         this.color = color;
         this.alive = true;
         this.trail = new ArrayList<>();
+        this.damage = 1;
     }
 
     public Rectangle getRect() {

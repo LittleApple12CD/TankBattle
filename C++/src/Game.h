@@ -8,6 +8,7 @@
 #include "Wall.h"
 #include "Explosion.h"
 #include "EnemyAI.h"
+#include "PowerUp.h"
 
 class Game {
 public:
@@ -30,17 +31,25 @@ public:
     void setPlayingMode() { menuMode = false; }
     void setMenuMode() { menuMode = true; }
     bool isMenuMode() const { return menuMode; }
+    void updatePowerups(float dt);
+    void spawnPowerup();
+    void applyPowerup(Tank* tank, PowerUp* powerup);
+    void explodeAt(float x, float y);
 
     void setSingleMode(bool b) { singleMode = b; }
     void setPvpMode(bool b) { pvpMode = b; }
 
 private:
+    std::list<PowerUp> powerups;
     std::vector<Wall> walls;
     std::vector<Explosion> explosions;
     Tank* player1;
     Tank* player2;
     std::list<Tank> enemies;
     std::list<EnemyAI> enemyAIs;
+    float powerupTimer = 0.0f;
+    float powerupInterval = 10.0f;
+    int maxPowerups = 3;
     float enemySpawnTimer;
     int enemyCount;
     int score;

@@ -10,9 +10,9 @@ public:
     void setAlive(bool a) { alive = a; }
     sf::FloatRect getRect() const;
     bool isSteel() const { return steel; }
+    float x, y, w, h;
 
 private:
-    float x, y, w, h;
     bool steel;
     bool alive;
 };
