@@ -8,10 +8,15 @@ import math
 from config import *
 from entities import Tank, Wall, Explosion, PowerUp
 from ai import EnemyAI
-
+from level_data import MAX_LEVEL, get_level_config, get_map_id, ENEMY_TYPES, BOSS_TYPES
+from save_manager import save_progress, load_progress, has_save
+from level_state import LevelState, LevelController
+from boss import Boss
+from menu import Menu
 
 class Game:
-    def __init__(self):
+    def __init__(self, screen=None):
+        self.screen = screen
         self.walls = []
         self.explosions = []
         self.player1 = None
@@ -33,6 +38,9 @@ class Game:
         self.powerup_timer = 0.0
         self.powerup_interval = 10.0
         self.max_powerups = 3
+        self.game_mode = "endless"  # "endless" 或 "level"
+        self.level_controller = None
+        self.level = 1
         
         self._init_fonts()
         self._init_level()
@@ -61,6 +69,83 @@ class Game:
             self.enemy_count = ENEMY_COUNT
         self.state = "playing"
         self.initLevel()
+
+    def start_level_mode(self, level):
+        """关卡模式启动"""
+        from level_data import get_map_id
+        from level_state import LevelController
+        from save_manager import save_progress
+
+        self.game_mode = "level"
+        self.level = level
+        self.single_mode = True  # 关卡模式强制单人
+
+        # 初始化关卡控制器
+        self.level_controller = LevelController()
+        self.level_controller.start_level(level)
+
+        # 重置玩家
+        if self.player1:
+            self.player1.lives = PLAYER_LIVES
+            self.player1.effects.clear()
+            self.player1.x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.y = GRID_OFFSET_Y + (GRID_SIZE - 3) * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.alive = True
+
+        # 关卡模式没有 P2
+        self.player2 = None
+
+        # 设置地图
+        self.current_map = get_map_id(level)
+        self._init_level()
+
+        # 保存进度
+        save_progress(level)
+
+    def _init_level_for_level_mode(self):
+        """关卡模式初始化"""
+        from level_data import get_map_id
+        # 重置玩家状态
+        if self.player1:
+            self.player1.lives = PLAYER_LIVES
+            self.player1.effects.clear()
+        if self.player2:
+            self.player2.lives = PLAYER_LIVES
+            self.player2.effects.clear()
+
+        # 设置地图（轮换）
+        self.current_map = get_map_id(self.level)
+        # 重置敌人、墙壁等
+        self._init_level()
+
+    def _update_level_state(self, dt):
+        """更新关卡状态"""
+        if not self.level_controller:
+            return
+
+        # 获取当前存活的敌人数量
+        enemies_alive = len([e for e in self.enemies if e.alive])
+
+        result = self.level_controller.update(dt, enemies_alive)
+
+        if result == 'spawn_enemy':
+            self._spawn_enemy_for_level()
+        elif result == 'spawn_boss':
+            self._spawn_boss()
+        elif result == 'level_cleared':
+            self._on_level_cleared()
+        elif result == 'boss_defeated':
+            self._on_boss_defeated()
+        elif result == 'game_victory':
+            self._on_game_victory()
+        elif result == 'next_level':
+            self._go_to_next_level()
+        elif result == 'gameover':
+            self._on_level_failed()
+        elif result == 'victory_done':
+            # 通关后返回主菜单
+            self.state = "menu"
+            self.menu = Menu(self.screen)
     
     def toggle_single_mode(self):
         """切换单双人模式"""
@@ -114,6 +199,7 @@ class Game:
         self.paused = False
         self.score = 0
         self.enemy_spawn_timer = 0
+
         self.walls.clear()
         self.explosions.clear()
         self.enemies.clear()
@@ -121,8 +207,13 @@ class Game:
         self.powerups.clear()
         self.powerup_timer = 0.0
 
-        self.current_map = random.randint(0, 4)
-        self._build_map(self.current_map)  # ← 这里不递归，调用 _build_map
+        # 生成地图
+        if self.game_mode == "level":
+            from level_data import get_map_id
+            self.current_map = get_map_id(self.level)
+        else:
+            self.current_map = random.randint(0, 4)
+        self._build_map(self.current_map)
 
         # P1 出生
         p1_x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
@@ -151,10 +242,131 @@ class Game:
         else:
             self.player2 = None
 
+        # 关卡模式：没有 P2
+        if self.game_mode == "level":
+            self.player2 = None
+            self.single_mode = True
+        elif not self.single_mode:
+            # 双人模式：创建 P2
+            p2_x = GRID_OFFSET_X + (GRID_SIZE - 2) * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            p2_y = GRID_OFFSET_Y + CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            if self.player2 is None:
+                self.player2 = Tank(p2_x, p2_y, COLORS['player2'], is_player=True, player_id=2)
+            else:
+                self.player2.x = p2_x
+                self.player2.y = p2_y
+                self.player2.alive = True
+                self.player2.lives = PLAYER_LIVES
+                self.player2.effects.clear()
+        else:
+            self.player2 = None
+
         # 生成敌人
         if not self.pvp_mode:
             for i in range(self.enemy_count):
                 self._spawn_enemy()
+
+        if self.game_mode == "endless" and not self.pvp_mode:
+            for i in range(ENEMY_COUNT):
+                self._spawn_enemy()
+
+    def _spawn_enemy_for_level(self):
+        """关卡模式生成敌人"""
+        from level_data import get_level_config, ENEMY_TYPES
+        config = get_level_config(self.level)
+        if not config:
+            return
+
+        enemy_type = config.get('enemy_type', 'normal')
+        type_data = ENEMY_TYPES.get(enemy_type, ENEMY_TYPES['normal'])
+
+        # 获取敌人属性
+        hp = type_data['hp']
+        speed_mult = type_data['speed_mult']
+        color = type_data['color']
+
+        # 生成位置
+        spawn_positions = [
+            (GRID_SIZE - 2, 1),
+            (GRID_SIZE // 2, 1),
+            (1, 1),
+        ]
+        col, row = random.choice(spawn_positions)
+        x = GRID_OFFSET_X + col * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+        y = GRID_OFFSET_Y + row * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+
+        # 检查位置是否被占用
+        test_rect = pygame.Rect(x, y, TANK_SIZE, TANK_SIZE)
+        for enemy in self.enemies:
+            if test_rect.colliderect(enemy.rect):
+                return
+
+        # 创建敌人
+        tank = Tank(x, y, color, TANK_SPEED * speed_mult, is_player=False)
+        tank.lives = hp  # 设置血量
+        tank.enemy_type = enemy_type
+        self.enemies.append(tank)
+        self.enemy_ais.append(EnemyAI(tank, self))
+
+    def _spawn_boss(self):
+        from level_data import BOSS_TYPES
+        from boss import Boss
+
+        boss_config = BOSS_TYPES.get(self.level, BOSS_TYPES.get(5))
+        if not boss_config:
+            return
+
+        boss_size = int(TANK_SIZE * boss_config['size_mult'])
+        x = GRID_OFFSET_X + GRID_SIZE * CELL_SIZE // 2 - boss_size // 2
+        y = GRID_OFFSET_Y + CELL_SIZE * 2
+
+        boss = Boss(
+            x, y,
+            hp=boss_config['hp'],
+            size_mult=boss_config['size_mult'],
+            speed_mult=boss_config['speed_mult'],
+            bullet_damage=boss_config['bullet_damage'],
+            bullet_speed_mult=boss_config['bullet_speed_mult']
+        )
+        # 确保 Boss 的位置和血量正确
+        boss.x = x
+        boss.y = y
+        boss.lives = boss_config['hp']  # 确保血量设置
+        boss.max_hp = boss_config['hp']
+
+        self.enemies.append(boss)
+        self.enemy_ais.append(EnemyAI(boss, self))
+
+        if self.level_controller:
+            self.level_controller.on_boss_spawned()
+
+    def _update_level_enemy_spawn(self, dt):
+        """关卡模式的敌人生成控制"""
+        if not self.level_controller:
+            return
+
+        # 获取当前存活的敌人数量
+        enemies_alive = len([e for e in self.enemies if e.alive])
+        result = self.level_controller.update(dt, enemies_alive)
+        print(f"Level {self.level}, result: {result}")  # 调试
+
+        if result == 'spawn_enemy':
+            self._spawn_enemy_for_level()
+        elif result == 'spawn_boss':
+            self._spawn_boss()
+        elif result == 'level_cleared':
+            self._on_level_cleared()
+        elif result == 'boss_defeated':
+            print(f"Boss defeated at level {self.level}")  # 调试
+            self._on_boss_defeated()
+        elif result == 'game_victory':
+            self._on_game_victory()
+        elif result == 'next_level':
+            self._go_to_next_level()
+        elif result == 'gameover':
+            self._on_level_failed()
+        elif result == 'victory_done':
+            self._on_victory_done()
 
     def _build_map(self, map_id):
         self._build_border()
@@ -263,6 +475,7 @@ class Game:
         self._add_brick(8, 6, 1, 1)
 
     def _spawn_enemy(self):
+        """无尽模式生成敌人"""
         if len(self.enemies) >= ENEMY_COUNT:
             return
 
@@ -294,18 +507,18 @@ class Game:
         if self.game_over or self.paused:
             return
 
+        # ===== 更新玩家 =====
         if self.player1 and self.player1.alive:
             self.player1.update(dt)
-
-        # 单人模式：P2 不存在，跳过
         if not self.single_mode and self.player2 and self.player2.alive:
             self.player2.update(dt)
 
-        # 道具更新
+        # ===== 道具更新 =====
         self._update_powerups(dt)
 
-        # PVE模式：更新敌人
+        # ===== 敌人更新 =====
         if not self.pvp_mode:
+            # 更新敌人 AI
             for ai in self.enemy_ais[:]:
                 ai.update(dt)
 
@@ -315,16 +528,21 @@ class Game:
                     self.enemies.pop(i)
                     self.enemy_ais.pop(i)
 
-            # 敌人生成
-            self.enemy_spawn_timer -= dt
-            if self.enemy_spawn_timer <= 0 and len(self.enemies) < ENEMY_COUNT:
-                self._spawn_enemy()
-                self.enemy_spawn_timer = ENEMY_SPAWN_INTERVAL
+            # ===== 敌人生成 =====
+            if self.game_mode == "endless":
+                # 无尽模式：不断生成敌人
+                self.enemy_spawn_timer -= dt
+                if self.enemy_spawn_timer <= 0 and len(self.enemies) < ENEMY_COUNT:
+                    self._spawn_enemy()
+                    self.enemy_spawn_timer = ENEMY_SPAWN_INTERVAL
+            else:
+                # 关卡模式：由 LevelController 控制生成
+                self._update_level_enemy_spawn(dt)
 
-        # 子弹碰撞
+        # ===== 子弹碰撞 =====
         self._handle_bullet_collisions()
 
-        # 爆炸效果
+        # ===== 爆炸效果 =====
         for e in self.explosions[:]:
             e.update(dt)
             if not e.alive:
@@ -349,6 +567,125 @@ class Game:
             if self.player1 and not self.player1.alive and self.player2 and not self.player2.alive:
                 self.game_over = True
 
+    def _on_level_cleared(self):
+        """过关"""
+        print(f"Stage {self.level} Clear!")
+        self.level_controller.state = LevelState.CLEARED
+        self.level_controller.wait_timer = 20.0
+        self.show_message = "STAGE CLEAR!"
+        self.waiting_for_enter = True
+
+    def _on_boss_defeated(self):
+        """Boss 击败（非第10关）"""
+        print(f"Boss Defeated! Level {self.level}")
+        self.show_message = "BOSS DEFEATED!"
+        self.waiting_for_enter = True
+        # 确保 level_controller 状态更新
+        if self.level_controller:
+            self.level_controller.state = LevelState.CLEARED
+            self.level_controller.wait_timer = 999.0
+
+    def _on_game_victory(self):
+        """第10关通关胜利"""
+        print("Game Victory!")
+        self.show_message = "GAME VICTORY!"
+        self.waiting_for_enter = True
+        if self.level_controller:
+            self.level_controller.state = LevelState.VICTORY
+            self.level_controller.wait_timer = 999.0
+        # 保存进度
+        from save_manager import save_progress
+        save_progress(10)
+
+    def _on_level_failed(self):
+        """关卡失败"""
+        print("Game Over!")
+        self.game_over = True
+
+    def continue_to_next(self):
+        """玩家按 Enter 继续"""
+        if not self.waiting_for_enter:
+            return
+
+        self.waiting_for_enter = False
+        self.show_message = None
+
+        # 检查是否是第10关胜利
+        if self.level == 10:
+            self._on_victory_done()
+            return
+
+        if self.level >= MAX_LEVEL:
+            self._on_victory_done()
+            return
+
+        # 进入下一关
+        self.level += 1
+        save_progress(self.level)
+
+        # 重置关卡
+        self.level_controller.start_level(self.level)
+
+        # 重置玩家状态
+        if self.player1:
+            self.player1.lives = PLAYER_LIVES
+            self.player1.effects.clear()
+            self.player1.x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.y = GRID_OFFSET_Y + (GRID_SIZE - 3) * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.alive = True
+            self.player1.w = TANK_SIZE
+            self.player1.h = TANK_SIZE
+
+        # 清除敌人
+        self.enemies.clear()
+        self.enemy_ais.clear()
+
+        # 重新初始化关卡
+        self.current_map = get_map_id(self.level)
+        self._init_level()
+
+        # 设置关卡模式状态
+        self.game_mode = "level"
+
+    def _go_to_next_level(self):
+        """进入下一关"""
+        from level_data import MAX_LEVEL
+        from save_manager import save_progress
+
+        next_level = self.level + 1
+        if next_level > MAX_LEVEL:
+            self._on_game_victory()
+            return
+
+        self.level = next_level
+        save_progress(self.level)
+        self.level_controller.start_level(self.level)
+
+        # 重置玩家状态
+        if self.player1:
+            self.player1.lives = PLAYER_LIVES
+            self.player1.effects.clear()
+            self.player1.x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.y = GRID_OFFSET_Y + (GRID_SIZE - 3) * CELL_SIZE + CELL_SIZE // 2 - TANK_SIZE // 2
+            self.player1.alive = True
+        if self.player2:
+            self.player2.lives = PLAYER_LIVES
+            self.player2.effects.clear()
+
+        # 重置关卡
+        self._init_level()
+
+    def _on_victory_done(self):
+        """通关后返回主菜单"""
+        print("Returning to main menu")
+        self.state = "menu"
+        from menu import Menu
+        self.menu = Menu(self.screen)
+        self.game_over = False
+        self.paused = False
+        self.show_message = None
+        self.waiting_for_enter = False
+
     def _handle_bullet_collisions(self):
         all_bullets = []
         if self.player1:
@@ -363,17 +700,20 @@ class Game:
             if not bullet.alive:
                 continue
 
-            # 子弹 vs 墙壁
             bullet_hit = False
+
+            # ===== 子弹 vs 墙壁 =====
             for wall in self.walls:
                 if not wall.alive:
                     continue
                 if bullet.rect.colliderect(wall.rect):
-                    # Strength 子弹爆炸范围
-                    if bullet.damage == 2 and not bullet.is_player:
-                        # 敌人子弹触发爆炸，但正常逻辑只有玩家子弹才需要爆炸？实际上 Strength 对所有坦克生效，包括敌人，但敌人子弹有 Strength 也会爆炸。
-                        # 我们统一：子弹 damage == 2 触发范围爆炸
+                    if bullet.damage >= 2 and bullet.is_player:
                         self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                        bullet.alive = False
+                        bullet_hit = True
+                        if not wall.is_steel:
+                            wall.alive = False
+                        self._add_explosion(bullet.x + bullet.w//2, bullet.y + bullet.h//2)
                     else:
                         bullet.alive = False
                         bullet_hit = True
@@ -385,13 +725,13 @@ class Game:
             if bullet_hit or not bullet.alive:
                 continue
 
-            # ---- PVP模式：玩家子弹互伤 ----
+            # ===== PVP 模式 =====
             if self.pvp_mode:
-                # P1子弹 vs P2
                 if bullet.is_player and bullet.player_id == 1:
                     if self.player2 and self.player2.alive and bullet.rect.colliderect(self.player2.rect):
-                        if bullet.damage == 2:
+                        if bullet.damage >= 2:
                             self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                            bullet.alive = False
                         else:
                             bullet.alive = False
                             if 'protection' in self.player2.effects:
@@ -402,12 +742,11 @@ class Game:
                             if self.player2.lives <= 0:
                                 self.player2.alive = False
                         continue
-
-                # P2子弹 vs P1
                 if bullet.is_player and bullet.player_id == 2:
                     if self.player1 and self.player1.alive and bullet.rect.colliderect(self.player1.rect):
-                        if bullet.damage == 2:
+                        if bullet.damage >= 2:
                             self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                            bullet.alive = False
                         else:
                             bullet.alive = False
                             if 'protection' in self.player1.effects:
@@ -419,31 +758,54 @@ class Game:
                                 self.player1.alive = False
                         continue
 
-            # ---- PVE模式 ----
+            # ===== PVE 模式 =====
             else:
                 if bullet.is_player:
-                    # 玩家子弹 vs 敌人
+                    # 玩家子弹 vs 敌人（包括 Boss）
                     for enemy in self.enemies[:]:
                         if enemy.alive and bullet.rect.colliderect(enemy.rect):
-                            if bullet.damage == 2:
-                                self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                            # Boss 特殊处理
+                            if hasattr(enemy, 'is_boss') and enemy.is_boss:
+                                enemy.lives -= bullet.damage
+                                bullet.alive = False
+                                print(f"Boss HP: {enemy.lives}/{enemy.max_hp}")
+                                if enemy.lives <= 0:
+                                    enemy.alive = False
+                                    self.score += 50
+                                    self._add_explosion(enemy.x + enemy.w//2, enemy.y + enemy.h//2)
+                                    if self.level == 10:
+                                        self._on_game_victory()
+                                    else:
+                                        self._on_boss_defeated()
+                                break
                             else:
+                                # 普通敌人
                                 bullet.alive = False
                                 if 'protection' in enemy.effects:
                                     del enemy.effects['protection']
                                 else:
-                                    enemy.lives -= 1
+                                    enemy.lives -= bullet.damage
                                 if enemy.lives <= 0:
                                     enemy.alive = False
                                     self.score += 10
                                     self._add_explosion(enemy.x + enemy.w//2, enemy.y + enemy.h//2)
-                            break
+                                break
                 else:
-                    # 敌人子弹 vs 玩家
+                    # 敌人子弹 vs 玩家（包括 Boss 子弹）
                     for player in [self.player1, self.player2]:
-                        if player and player.alive and bullet.rect.colliderect(player.rect):
-                            if bullet.damage == 2:
-                                self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                        if player is None or not player.alive:
+                            continue
+                        if bullet.rect.colliderect(player.rect):
+                            if bullet.damage >= 2:
+                                # Strength 子弹直接伤害玩家
+                                if 'protection' in player.effects:
+                                    del player.effects['protection']
+                                else:
+                                    player.lives -= bullet.damage
+                                    self._add_explosion(player.x + player.w//2, player.y + player.h//2)
+                                bullet.alive = False
+                                if player.lives <= 0:
+                                    player.alive = False
                             else:
                                 bullet.alive = False
                                 if 'protection' in player.effects:
@@ -455,7 +817,7 @@ class Game:
                                     player.alive = False
                             break
 
-        # 清理子弹
+        # 清理死亡子弹
         if self.player1:
             self.player1.bullets = [b for b in self.player1.bullets if b.alive]
         if self.player2:
@@ -595,6 +957,26 @@ class Game:
             for b in self.player2.bullets:
                 b.draw(screen)
 
+        # ===== 字幕显示 =====
+        if hasattr(self, 'show_message') and self.show_message:
+            # 半透明背景
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+
+            # 主标题
+            font_big = pygame.font.Font(None, 72)
+            text = font_big.render(self.show_message, True, (255, 255, 100))
+            text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 40))
+            screen.blit(text, text_rect)
+
+            # 副标题（提示按 Enter）
+            font_small = pygame.font.Font(None, 28)
+            if self.waiting_for_enter:
+                hint = font_small.render("Press ENTER to continue", True, (200, 200, 200))
+                hint_rect = hint.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 40))
+                screen.blit(hint, hint_rect)
+
         for ex in self.explosions:
             ex.draw(screen)
         
@@ -678,15 +1060,13 @@ class Game:
             screen.blit(text, (WINDOW_WIDTH - 200, 10 + i * 20))
 
     def _explode_at(self, x, y, is_player):
-        """Strength 子弹爆炸，范围 TANK_SIZE * 2，伤害 2，摧毁普通墙"""
+        """Strength 子弹爆炸"""
         radius = TANK_SIZE * 2
-        center = (x, y)
     
-        # 对所有敌人
+        # 伤害所有敌人（包括 Boss）
         for enemy in self.enemies[:]:
             if not enemy.alive:
                 continue
-            # 计算距离
             ex, ey = enemy.get_center()
             dist = math.hypot(ex - x, ey - y)
             if dist <= radius:
@@ -697,9 +1077,9 @@ class Game:
                     if enemy.lives <= 0:
                         enemy.alive = False
                         self.score += 10
-                        self._add_explosion(enemy.x + enemy.w//2, enemy.y + enemy.h//2)
-    
-        # 对玩家（PVP模式下才伤害玩家）
+                        self._add_explosion(ex, ey)
+
+        # PVP 模式：伤害玩家
         if self.pvp_mode:
             for player in [self.player1, self.player2]:
                 if player and player.alive:
@@ -710,27 +1090,25 @@ class Game:
                             del player.effects['protection']
                         else:
                             player.lives -= 2
-                            self._add_explosion(player.x + player.w//2, player.y + player.h//2)
+                            self._add_explosion(px, py)
                             if player.lives <= 0:
                                 player.alive = False
-        
+
         # 摧毁普通墙壁
         for wall in self.walls[:]:
-            if not wall.alive:
+            if not wall.alive or wall.is_steel:
                 continue
-            if wall.is_steel:
-                continue
-            # 检测墙壁是否在爆炸范围内
             wx, wy = wall.x + wall.w//2, wall.y + wall.h//2
             if math.hypot(wx - x, wy - y) <= radius:
                 wall.alive = False
-    
+
         # 爆炸特效
         for _ in range(8):
-            self._add_explosion(x + random.randint(-radius//2, radius//2),
-                               y + random.randint(-radius//2, radius//2))
+            self._add_explosion(
+                x + random.randint(-radius//2, radius//2),
+                y + random.randint(-radius//2, radius//2)
+            )
             
     def player1_shoot(self):
-        print("shoot called")  # 调试
         if self.player1 and self.player1.alive:
             self.player1.shoot()

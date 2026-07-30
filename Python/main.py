@@ -7,6 +7,7 @@ import sys
 from config import *
 from game import Game
 from menu import Menu
+from save_manager import has_save, load_progress
 
 
 class TankBattle:
@@ -16,10 +17,9 @@ class TankBattle:
         pygame.display.set_caption("Tank Battle - Python")
         self.clock = pygame.time.Clock()
         
-        # 游戏状态：menu, playing
         self.state = "menu"
         self.menu = Menu(self.screen)
-        self.game = Game()
+        self.game = None
         self.running = True
         
         # P1 按键状态
@@ -34,15 +34,14 @@ class TankBattle:
         }
 
     def start_game(self, mode):
-        """启动游戏"""
-        # 重置游戏状态
-        self.game = Game()
+        """无尽模式启动"""
+        self.game = Game(self.screen)
+        self.game.game_mode = "endless"
         
-        # 根据模式设置
         if mode == "single_player":
             self.game.single_mode = True
             self.game.pvp_mode = False
-            self.game.enemy_count = ENEMY_COUNT * 2
+            self.game.enemy_count = ENEMY_COUNT
             self.game._init_level()
         elif mode == "pvp":
             self.game.single_mode = False
@@ -57,11 +56,19 @@ class TankBattle:
         
         self.state = "playing"
 
+    def start_level_mode(self, level):
+        """关卡模式启动"""
+        self.game = Game(self.screen)
+        self.game.start_level_mode(level)
+        self.state = "playing"
+
     def run(self):
         while self.running:
             dt = self.clock.tick(FPS) / 1000.0
             if dt > 0.05:
                 dt = 0.05
+
+            # ===== 事件处理 =====
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -69,21 +76,35 @@ class TankBattle:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         if self.state == "playing":
-                            # 游戏中 → 返回主菜单
                             self.state = "menu"
-                            self.menu.reset()
-                            self.game.paused = False
+                            self.menu = Menu(self.screen)
+                            if self.game:
+                                self.game.paused = False
                             continue
                         else:
-                            # 菜单中 → 交给 menu 处理（子菜单返回上一级，主菜单退出）
-                            menu_result = self.menu.handle_event(event)
+                            self.running = False
+                            continue
+
+                    # 关卡模式按 Enter 继续
+                    if event.key == pygame.K_RETURN:
+                        if self.state == "playing" and self.game and hasattr(self.game, 'waiting_for_enter') and self.game.waiting_for_enter:
+                            self.game.continue_to_next()
                             continue
 
                     # ===== 菜单模式 =====
                     if self.state == "menu":
                         result = self.menu.handle_event(event)
-                        if result == "single_player":
+                        if result == "endless_mode":
                             self.start_game("single_player")
+                        elif result == "new_game":
+                            self.start_level_mode(1)
+                        elif result == "load_game":
+                            if has_save():
+                                level = load_progress()
+                                self.start_level_mode(level)
+                            else:
+                                print("No save found, starting from level 1")
+                                self.start_level_mode(1)
                         elif result == "pvp":
                             self.start_game("pvp")
                         elif result == "pve":
@@ -95,9 +116,11 @@ class TankBattle:
                         continue
 
                     if event.key == pygame.K_p:
-                        self.game.paused = not self.game.paused
+                        if self.game:
+                            self.game.paused = not self.game.paused
                     elif event.key == pygame.K_r:
-                        self.game._init_level()
+                        if self.game:
+                            self.game._init_level()
                     
                     # ---- P1 控制 (方向键) ----
                     elif event.key == pygame.K_LEFT:
@@ -110,7 +133,8 @@ class TankBattle:
                         self.p1_keys['down'] = True
                     elif event.key == pygame.K_SPACE:
                         self.p1_keys['shoot'] = True
-                        self.game.player1_shoot()
+                        if self.game:
+                            self.game.player1_shoot()
                     
                     # ---- P2 控制 (WASD) ----
                     elif event.key == pygame.K_a:
@@ -123,7 +147,8 @@ class TankBattle:
                         self.p2_keys['down'] = True
                     elif event.key == pygame.K_j:
                         self.p2_keys['shoot'] = True
-                        self.game.player2_shoot()
+                        if self.game:
+                            self.game.player2_shoot()
 
                 elif event.type == pygame.KEYUP:
                     # ---- P1 释放 ----
@@ -150,44 +175,47 @@ class TankBattle:
                     elif event.key == pygame.K_j:
                         self.p2_keys['shoot'] = False
 
-            # ---- 持续移动 P1 ----
-            if self.state == "playing" and not self.game.paused and not self.game.game_over:
-                dx = dy = 0
-                if self.p1_keys['left']:
-                    dx = -1
-                elif self.p1_keys['right']:
-                    dx = 1
-                elif self.p1_keys['up']:
-                    dy = -1
-                elif self.p1_keys['down']:
-                    dy = 1
+            # ===== 检测游戏是否请求返回菜单 =====
+            if self.state == "playing" and self.game and hasattr(self.game, 'state') and self.game.state == "menu":
+                self.state = "menu"
+                self.menu = Menu(self.screen)
+                continue
 
-                if dx != 0 or dy != 0:
-                    self.game.move_player1(dx, dy, dt)
+            # ===== 更新 =====
+            if self.state == "playing" and self.game:
+                if not self.game.paused and not self.game.game_over:
+                    # P1 移动
+                    dx = dy = 0
+                    if self.p1_keys['left']:
+                        dx = -1
+                    elif self.p1_keys['right']:
+                        dx = 1
+                    elif self.p1_keys['up']:
+                        dy = -1
+                    elif self.p1_keys['down']:
+                        dy = 1
+                    if dx != 0 or dy != 0:
+                        self.game.move_player1(dx, dy, dt)
 
-            # ---- 持续移动 P2 ----
-            if self.state == "playing" and not self.game.paused and not self.game.game_over:
-                dx = dy = 0
-                if self.p2_keys['left']:
-                    dx = -1
-                elif self.p2_keys['right']:
-                    dx = 1
-                elif self.p2_keys['up']:
-                    dy = -1
-                elif self.p2_keys['down']:
-                    dy = 1
+                    # P2 移动
+                    dx = dy = 0
+                    if self.p2_keys['left']:
+                        dx = -1
+                    elif self.p2_keys['right']:
+                        dx = 1
+                    elif self.p2_keys['up']:
+                        dy = -1
+                    elif self.p2_keys['down']:
+                        dy = 1
+                    if dx != 0 or dy != 0:
+                        self.game.move_player2(dx, dy, dt)
 
-                if dx != 0 or dy != 0:
-                    self.game.move_player2(dx, dy, dt)
-
-            # ---- 更新 ----
-            if self.state == "playing":
                 self.game.update(dt)
 
-            # ---- 渲染 ----
+            # ===== 渲染 =====
             if self.state == "menu":
                 self.menu.draw()
-            else:
+            elif self.state == "playing" and self.game:
                 self.game.draw(self.screen)
             
             pygame.display.flip()

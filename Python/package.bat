@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo   坦克大战 - Python 高级打包工具
+echo   坦克大战 - Python 打包工具 (v1.6)
 echo ========================================
 echo.
 
@@ -54,6 +54,10 @@ if exist icon.ico (
     set PYINSTALLER_ARGS=!PYINSTALLER_ARGS! --icon=icon.ico
 )
 
+REM ===== 关键：指定入口文件和需要包含的数据文件 =====
+set MAIN_FILE=main.py
+set ADD_DATA=--add-data "level_data.py;." --add-data "save_manager.py;." --add-data "level_state.py;." --add-data "boss.py;." --add-data "config.py;." --add-data "entities.py;." --add-data "ai.py;." --add-data "game.py;." --add-data "menu.py;."
+
 if "%choice%"=="1" goto single
 if "%choice%"=="2" goto folder
 if "%choice%"=="3" goto console
@@ -69,62 +73,38 @@ exit /b 1
 echo.
 echo [信息] 开始打包为单文件 EXE...
 echo [信息] 这可能需要 1-3 分钟...
-if exist icon.ico (
-    pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! --icon=icon.ico main.py
-) else (
-    pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! main.py
-)
+pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE%
 goto done
 
 :folder
 echo.
 echo [信息] 开始打包为文件夹版 EXE...
 echo [信息] 这可能需要 1-3 分钟...
-if exist icon.ico (
-    pyinstaller --onedir --noconsole !PYINSTALLER_ARGS! --icon=icon.ico main.py
-) else (
-    pyinstaller --onedir --noconsole !PYINSTALLER_ARGS! main.py
-)
+pyinstaller --onedir --noconsole !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE%
 goto done
 
 :console
 echo.
 echo [信息] 开始打包为单文件 + 控制台版 EXE...
 echo [信息] 这可能需要 1-3 分钟...
-if exist icon.ico (
-    pyinstaller --onefile --console !PYINSTALLER_ARGS! --icon=icon.ico main.py
-) else (
-    pyinstaller --onefile --console !PYINSTALLER_ARGS! main.py
-)
+pyinstaller --onefile --console !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE%
 goto done
 
 :upx
 echo.
 echo [信息] 优化打包 (需要 UPX)...
 echo [信息] 如果提示 UPX 错误，请忽略，文件仍然可用
-if exist icon.ico (
-    pyinstaller --onefile --noconsole --upx-dir="C:\upx" !PYINSTALLER_ARGS! --icon=icon.ico main.py 2>nul
-) else (
-    pyinstaller --onefile --noconsole --upx-dir="C:\upx" !PYINSTALLER_ARGS! main.py 2>nul
-)
+pyinstaller --onefile --noconsole --upx-dir="C:\upx" !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE% 2>nul
 if %errorlevel% neq 0 (
     echo [警告] UPX 压缩失败，使用普通模式...
-    if exist icon.ico (
-        pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! --icon=icon.ico main.py
-    ) else (
-        pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! main.py
-    )
+    pyinstaller --onefile --noconsole !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE%
 )
 goto done
 
 :compatible
 echo.
 echo [信息] 高兼容打包 (支持 Windows 7+)...
-if exist icon.ico (
-    pyinstaller --onefile --noconsole --target-arch=x86_64 !PYINSTALLER_ARGS! --icon=icon.ico main.py
-) else (
-    pyinstaller --onefile --noconsole --target-arch=x86_64 !PYINSTALLER_ARGS! main.py
-)
+pyinstaller --onefile --noconsole --target-arch=x86_64 !PYINSTALLER_ARGS! !ADD_DATA! %MAIN_FILE%
 goto done
 
 :cancel
@@ -148,7 +128,7 @@ if %errorlevel%==0 (
     )
     
     echo.
-    echo   文件大小:
+    echo   文件大小: 
     dir dist\TankBattle.exe 2>nul | find "TankBattle.exe"
     
     echo.
@@ -176,11 +156,9 @@ if %errorlevel%==0 (
     echo   2. 检查 main.py 是否存在
     echo   3. 检查所有 Python 文件是否有语法错误
     echo   4. 尝试以管理员身份运行
-    echo   5. 查看详细错误: dist\*.log
     echo.
     echo 查看错误日志:
     type dist\*.log 2>nul
 )
 
-echo.
 pause
