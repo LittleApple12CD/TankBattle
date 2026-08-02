@@ -3,12 +3,14 @@
 
 Menu::Menu() : state(MAIN), selected(0) {
     mainItems = {"Single Player", "Multiplayer", "Mod", "Settings", "Exit"};
+    singleItems = {"Endless Mode", "Level Mode", "Back"};      // 添加
+    levelItems = {"Load Game", "New Game", "Back"};           // 添加
     multiItems = {"Local", "Lan", "Server", "Online", "Back"};
     modeItems = {"PVP", "PVE", "Back"};
     currentItems = &mainItems;
 
     // 加载字体
-    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial/arial.ttf");
+    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial.ttf");
     if (!loaded) {
         loaded = font.openFromFile("C:/Windows/Fonts/consola.ttf");
     }
@@ -18,7 +20,6 @@ Menu::Menu() : state(MAIN), selected(0) {
 Menu::~Menu() {}
 
 std::string Menu::handleInput(const sf::Event& event) {
-    // SFML 3.0: 用 is<KeyPressed>() 和 getIf<KeyPressed>()
     if (auto* keyPressed = event.getIf<sf::Event::KeyPressed>()) {
         switch (keyPressed->code) {
             case sf::Keyboard::Key::Up:
@@ -48,27 +49,60 @@ std::string Menu::selectCurrent() {
 
     if (state == MAIN) {
         if (choice == "Single Player") {
-            return "single_player";
+            state = SINGLE;
+            currentItems = &singleItems;
+            selected = 0;
+            return "";
         } else if (choice == "Multiplayer") {
             state = MULTIPLAYER;
             currentItems = &multiItems;
             selected = 0;
+            return "";
         } else if (choice == "Mod") {
             std::cout << "Mod mode - reserved for future" << std::endl;
+            return "";
+        } else if (choice == "Settings") {
+            std::cout << "Settings - reserved for future" << std::endl;
+            return "";
         } else if (choice == "Exit") {
             return "exit";
+        }
+    } else if (state == SINGLE) {
+        if (choice == "Endless Mode") {
+            return "endless_mode";
+        } else if (choice == "Level Mode") {
+            state = LEVEL;
+            currentItems = &levelItems;
+            selected = 0;
+            return "";
+        } else if (choice == "Back") {
+            goBack();
+            return "";
+        }
+    } else if (state == LEVEL) {
+        if (choice == "Load Game") {
+            return "load_game";
+        } else if (choice == "New Game") {
+            return "new_game";
+        } else if (choice == "Back") {
+            goBack();
+            return "";
         }
     } else if (state == MULTIPLAYER) {
         if (choice == "Local") {
             state = MODE;
             currentItems = &modeItems;
             selected = 0;
-        } else if (choice == "Lan (Reserved)") {
+            return "";
+        } else if (choice == "Lan") {
             std::cout << "Lan mode - reserved for future" << std::endl;
-        } else if (choice == "Online (Reserved)") {
+            return "";
+        } else if (choice == "Online") {
             std::cout << "Online mode - reserved for future" << std::endl;
+            return "";
         } else if (choice == "Back") {
             goBack();
+            return "";
         }
     } else if (state == MODE) {
         if (choice == "PVP") {
@@ -77,13 +111,20 @@ std::string Menu::selectCurrent() {
             return "pve";
         } else if (choice == "Back") {
             goBack();
+            return "";
         }
     }
     return "";
 }
 
 void Menu::goBack() {
-    if (state == MULTIPLAYER) {
+    if (state == SINGLE) {
+        state = MAIN;
+        currentItems = &mainItems;
+    } else if (state == LEVEL) {
+        state = SINGLE;
+        currentItems = &singleItems;
+    } else if (state == MULTIPLAYER) {
         state = MAIN;
         currentItems = &mainItems;
     } else if (state == MODE) {
@@ -102,7 +143,6 @@ void Menu::reset() {
 void Menu::draw(sf::RenderWindow& window) {
     window.clear(COLOR_BG);
 
-    // SFML 3.0: Text 构造函数参数顺序: (font, string, characterSize)
     sf::Text title(fontTitle, "Tank Battle", 72);
     title.setFillColor(sf::Color::White);
     title.setStyle(sf::Text::Bold);
@@ -120,7 +160,11 @@ void Menu::draw(sf::RenderWindow& window) {
     }
 
     sf::Text hint(font, "", 14);
-    if (state == MULTIPLAYER) {
+    if (state == SINGLE) {
+        hint.setString("Select game mode");
+    } else if (state == LEVEL) {
+        hint.setString("Load saved progress or start fresh");
+    } else if (state == MULTIPLAYER) {
         hint.setString("Select a multiplayer mode");
     } else if (state == MODE) {
         hint.setString("Select game mode");
@@ -131,7 +175,7 @@ void Menu::draw(sf::RenderWindow& window) {
     hint.setPosition(sf::Vector2f(20.0f, WINDOW_HEIGHT - 40.0f));
     window.draw(hint);
 
-    sf::Text ver(font, "v1.4", 14);
+    sf::Text ver(font, "v1.6", 14);
     ver.setFillColor(sf::Color(80, 80, 90));
     ver.setPosition(sf::Vector2f(WINDOW_WIDTH - 80.0f, WINDOW_HEIGHT - 30.0f));
     window.draw(ver);

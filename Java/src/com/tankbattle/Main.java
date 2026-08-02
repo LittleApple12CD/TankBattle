@@ -33,22 +33,34 @@ public class Main extends JPanel implements Runnable, KeyListener {
         gameThread.start();
     }
 
+    // ===== 启动游戏模式 =====
     private void startGame(String mode) {
-        game.initLevel();
-        game.setPaused(false);
-        gameState = "playing";
-        
-        // 根据模式设置
+        game = new Game();
         if (mode.equals("single_player")) {
             game.setSingleMode(true);
             game.setPvpMode(false);
+            game.setEnemyCount(ENEMY_COUNT);
+            game.initLevel();
         } else if (mode.equals("pvp")) {
             game.setSingleMode(false);
             game.setPvpMode(true);
+            game.setEnemyCount(0);
+            game.initLevel();
         } else if (mode.equals("pve")) {
             game.setSingleMode(false);
             game.setPvpMode(false);
+            game.setEnemyCount(ENEMY_COUNT);
+            game.initLevel();
         }
+        gameState = "playing";
+        repaint();
+    }
+
+    // ===== 启动关卡模式 =====
+    private void startLevelMode(int level) {
+        game = new Game();
+        game.startLevelMode(level);
+        gameState = "playing";
         repaint();
     }
 
@@ -81,7 +93,10 @@ public class Main extends JPanel implements Runnable, KeyListener {
     private void update() {
         if (gameState.equals("playing") && !game.isPaused() && !game.isGameOver()) {
             double dt = 1.0 / FPS;
-            
+
+            // ===== 检测 Enter 键（关卡模式继续） =====
+            // 注意：Enter 是在 KeyListener 中处理的，这里只更新游戏逻辑
+
             // P1 移动
             int dx1 = 0, dy1 = 0;
             if (p1Left) dx1 = -1;
@@ -109,8 +124,8 @@ public class Main extends JPanel implements Runnable, KeyListener {
                 game.player2Shoot();
                 p2Shoot = false;
             }
-            
-            game.update((float)dt);
+
+            game.update(dt);
         }
     }
 
@@ -119,9 +134,8 @@ public class Main extends JPanel implements Runnable, KeyListener {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    
+
         if (gameState.equals("menu")) {
-            // 确保菜单组件尺寸与面板一致
             menu.setBounds(0, 0, getWidth(), getHeight());
             menu.paint(g2d);
         } else {
@@ -135,6 +149,44 @@ public class Main extends JPanel implements Runnable, KeyListener {
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
 
+        // ===== 菜单模式 =====
+        if (gameState.equals("menu")) {
+            String result = menu.handleKeyPress(key);
+            if (result != null) {
+                switch (result) {
+                    case "endless_mode":
+                        startGame("single_player");
+                        break;
+                    case "new_game":
+                        startLevelMode(1);
+                        break;
+                    case "load_game":
+                        if (SaveManager.hasSave()) {
+                            int level = SaveManager.loadProgress();
+                            startLevelMode(level);
+                        } else {
+                            System.out.println("No save found, starting from level 1");
+                            startLevelMode(1);
+                        }
+                        break;
+                    case "pvp":
+                        startGame("pvp");
+                        break;
+                    case "pve":
+                        startGame("pve");
+                        break;
+                    case "exit":
+                        System.exit(0);
+                        break;
+                }
+            }
+            repaint();
+            return;
+        }
+
+        // ===== 游戏中 =====
+
+        // ESC 返回菜单
         if (key == KeyEvent.VK_ESCAPE) {
             if (gameState.equals("playing")) {
                 gameState = "menu";
@@ -142,28 +194,24 @@ public class Main extends JPanel implements Runnable, KeyListener {
                 game.setPaused(false);
                 repaint();
                 return;
-            } else {
-                running = false;
-                System.exit(0);
             }
         }
 
-        if (gameState.equals("menu")) {
-            String result = menu.handleKeyPress(key);
-            if (result != null) {
-                if (result.equals("single_player")) {
-                    startGame("single_player");
-                } else if (result.equals("pvp")) {
-                    startGame("pvp");
-                } else if (result.equals("pve")) {
-                    startGame("pve");
+        // 关卡模式：按 Enter 继续
+        if (key == KeyEvent.VK_ENTER) {
+            if (gameState.equals("playing") && game != null && game.isWaitingForEnter()) {
+                game.continueToNext();
+                // 如果通关完成，返回菜单
+                if (game.isVictoryDone()) {
+                    gameState = "menu";
+                    menu.resetState();
+                    repaint();
                 }
+                return;
             }
-            repaint();
-            return;
         }
 
-        // 游戏中禁用 O 和 G
+        // 禁用 O 和 G
         if (key == KeyEvent.VK_O || key == KeyEvent.VK_G) {
             return;
         }
@@ -208,6 +256,7 @@ public class Main extends JPanel implements Runnable, KeyListener {
     @Override
     public void keyTyped(KeyEvent e) {}
 
+    // ===== 主入口 =====
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Tank Battle - Java");

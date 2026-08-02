@@ -22,6 +22,7 @@ public class Tank {
     public boolean alive;
     public List<Bullet> bullets;
     public java.util.Map<String, Float> effects = new java.util.HashMap<>();
+    public boolean isBoss = false;
 
     // ===== 行驶痕迹 =====
     private ArrayList<TrailPoint> trailPoints;

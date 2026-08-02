@@ -1,10 +1,18 @@
 #include <SFML/Graphics.hpp>
 #include "Game.h"
 #include "Menu.h"
+#include "SaveManager.h"
 
 int main() {
     sf::VideoMode vm(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT));
     sf::RenderWindow window(vm, "Tank Battle - C++");
+
+    // ===== 设置窗口图标 =====
+    sf::Image icon;
+    if (icon.loadFromFile("icon.png")) {
+        window.setIcon(icon);
+    }
+
     window.setFramerateLimit(FPS);
 
     Game game;
@@ -17,14 +25,14 @@ int main() {
     while (window.isOpen()) {
         float dt = 1.0f / FPS;
 
-        // 事件处理
         while (auto eventOpt = window.pollEvent()) {
             sf::Event event = *eventOpt;
             if (event.is<sf::Event::Closed>()) window.close();
 
             if (event.is<sf::Event::KeyPressed>()) {
-                // ESC 键处理
-                if (event.getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Escape) {
+                auto key = event.getIf<sf::Event::KeyPressed>()->code;
+
+                if (key == sf::Keyboard::Key::Escape) {
                     if (inMenu) {
                         window.close();
                     } else {
@@ -55,21 +63,54 @@ int main() {
                         game.initLevel();
                         game.setSingleMode(false);
                         game.setPvpMode(false);
+                    } else if (result == "endless_mode") {
+                        inMenu = false;
+                        game.setPlayingMode();
+                        game.initLevel();
+                        game.setSingleMode(true);
+                        game.setPvpMode(false);
+                    } else if (result == "load_game") {
+                        if (SaveManager::hasSave()) {
+                            int level = SaveManager::loadProgress();
+                            inMenu = false;
+                            game.setPlayingMode();
+                            game.startLevelMode(level);
+                        } else {
+                            inMenu = false;
+                            game.setPlayingMode();
+                            game.startLevelMode(1);
+                        }
+                    } else if (result == "new_game") {
+                        inMenu = false;
+                        game.setPlayingMode();
+                        game.startLevelMode(1);
                     } else if (result == "exit") {
                         window.close();
                     }
                     continue;
                 }
 
-                // ===== 游戏中 =====
-                // 禁用 O 和 G
-                if (event.getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::O ||
-                    event.getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::G) {
+                // ===== 游戏模式 =====
+
+                // Enter 键：关卡继续
+                if (key == sf::Keyboard::Key::Enter) {
+                    if (game.isWaitingForEnter()) {
+                        game.continueToNext();
+                        if (game.isVictoryDone()) {
+                            inMenu = true;
+                            menu.reset();
+                            game.setMenuMode();
+                        }
+                    }
                     continue;
                 }
 
-                // P1 控制
-                switch (event.getIf<sf::Event::KeyPressed>()->code) {
+                // 禁用 O 和 G
+                if (key == sf::Keyboard::Key::O || key == sf::Keyboard::Key::G) {
+                    continue;
+                }
+
+                switch (key) {
                     case sf::Keyboard::Key::Left: p1Left = true; break;
                     case sf::Keyboard::Key::Right: p1Right = true; break;
                     case sf::Keyboard::Key::Up: p1Up = true; break;
@@ -86,9 +127,9 @@ int main() {
                 }
             }
 
-            // 按键释放
             if (event.is<sf::Event::KeyReleased>()) {
-                switch (event.getIf<sf::Event::KeyReleased>()->code) {
+                auto key = event.getIf<sf::Event::KeyReleased>()->code;
+                switch (key) {
                     case sf::Keyboard::Key::Left: p1Left = false; break;
                     case sf::Keyboard::Key::Right: p1Right = false; break;
                     case sf::Keyboard::Key::Up: p1Up = false; break;
@@ -104,9 +145,7 @@ int main() {
             }
         }
 
-        // 更新（仅游戏中）
         if (!inMenu && !game.isPaused() && !game.isGameOver()) {
-            // P1
             int dx1=0, dy1=0;
             if (p1Left) dx1 = -1;
             else if (p1Right) dx1 = 1;
@@ -115,7 +154,6 @@ int main() {
             if (dx1 != 0 || dy1 != 0) game.movePlayer1(dx1, dy1);
             if (p1Shoot) { game.player1Shoot(); p1Shoot = false; }
 
-            // P2
             int dx2=0, dy2=0;
             if (p2Left) dx2 = -1;
             else if (p2Right) dx2 = 1;
@@ -127,7 +165,6 @@ int main() {
             game.update(dt);
         }
 
-        // 渲染
         if (inMenu) {
             menu.draw(window);
         } else {

@@ -17,11 +17,15 @@ private:
     enum MenuState {
         MAIN,
         MULTIPLAYER,
-        MODE
+        MODE,
+        SINGLE,
+        LEVEL
     };
 
     std::vector<std::string> mainItems;
     std::vector<std::string> multiItems;
+    std::vector<std::string> singleItems;
+    std::vector<std::string> levelItems;
     std::vector<std::string> modeItems;
     std::vector<std::string>* currentItems;
     MenuState state;

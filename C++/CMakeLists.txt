@@ -18,6 +18,10 @@ set(SOURCES
     src/MapGenerator.cpp
     src/Menu.cpp
     src/PowerUp.cpp
+    src/Boss.cpp
+    src/LevelData.cpp
+    src/LevelState.cpp
+    src/SaveManager.cpp
     ${RESOURCES}
 )
 

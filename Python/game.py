@@ -28,19 +28,21 @@ class Game:
         self.game_over = False
         self.paused = False
         self.current_map = 0
-        self.pvp_mode = False          # False=PVE合作, True=PVP对战
-        self.single_mode = False  # False=双人, True=单人
-        self.enemy_count = ENEMY_COUNT  # 单人时敌人翻倍
+        self.pvp_mode = False
+        self.single_mode = False
+        self.enemy_count = ENEMY_COUNT
         self.menu = None
         self.state = "playing"
-        self.return_to_menu = False  # 游戏内按 ESC 回到菜单
+        self.return_to_menu = False
         self.powerups = []
         self.powerup_timer = 0.0
         self.powerup_interval = 10.0
         self.max_powerups = 3
-        self.game_mode = "endless"  # "endless" 或 "level"
+        self.game_mode = "endless"
         self.level_controller = None
         self.level = 1
+        self.show_message = None
+        self.waiting_for_enter = False
         
         self._init_fonts()
         self._init_level()
@@ -348,7 +350,6 @@ class Game:
         # 获取当前存活的敌人数量
         enemies_alive = len([e for e in self.enemies if e.alive])
         result = self.level_controller.update(dt, enemies_alive)
-        print(f"Level {self.level}, result: {result}")  # 调试
 
         if result == 'spawn_enemy':
             self._spawn_enemy_for_level()
@@ -357,7 +358,6 @@ class Game:
         elif result == 'level_cleared':
             self._on_level_cleared()
         elif result == 'boss_defeated':
-            print(f"Boss defeated at level {self.level}")  # 调试
             self._on_boss_defeated()
         elif result == 'game_victory':
             self._on_game_victory()
@@ -530,13 +530,11 @@ class Game:
 
             # ===== 敌人生成 =====
             if self.game_mode == "endless":
-                # 无尽模式：不断生成敌人
                 self.enemy_spawn_timer -= dt
                 if self.enemy_spawn_timer <= 0 and len(self.enemies) < ENEMY_COUNT:
                     self._spawn_enemy()
                     self.enemy_spawn_timer = ENEMY_SPAWN_INTERVAL
             else:
-                # 关卡模式：由 LevelController 控制生成
                 self._update_level_enemy_spawn(dt)
 
         # ===== 子弹碰撞 =====
@@ -687,6 +685,7 @@ class Game:
         self.waiting_for_enter = False
 
     def _handle_bullet_collisions(self):
+        """处理子弹碰撞"""
         all_bullets = []
         if self.player1:
             all_bullets.extend(self.player1.bullets)
@@ -703,10 +702,11 @@ class Game:
             bullet_hit = False
 
             # ===== 子弹 vs 墙壁 =====
-            for wall in self.walls:
+            for wall in self.walls[:]:
                 if not wall.alive:
                     continue
                 if bullet.rect.colliderect(wall.rect):
+                    # Strength 子弹：范围爆炸
                     if bullet.damage >= 2 and bullet.is_player:
                         self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
                         bullet.alive = False
@@ -730,6 +730,7 @@ class Game:
                 if bullet.is_player and bullet.player_id == 1:
                     if self.player2 and self.player2.alive and bullet.rect.colliderect(self.player2.rect):
                         if bullet.damage >= 2:
+                            # Strength 子弹：范围爆炸
                             self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
                             bullet.alive = False
                         else:
@@ -737,14 +738,16 @@ class Game:
                             if 'protection' in self.player2.effects:
                                 del self.player2.effects['protection']
                             else:
-                                self.player2.lives -= 1
+                                self.player2.lives -= bullet.damage
                                 self._add_explosion(self.player2.x + self.player2.w//2, self.player2.y + self.player2.h//2)
                             if self.player2.lives <= 0:
                                 self.player2.alive = False
                         continue
+
                 if bullet.is_player and bullet.player_id == 2:
                     if self.player1 and self.player1.alive and bullet.rect.colliderect(self.player1.rect):
                         if bullet.damage >= 2:
+                            # Strength 子弹：范围爆炸
                             self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
                             bullet.alive = False
                         else:
@@ -752,7 +755,7 @@ class Game:
                             if 'protection' in self.player1.effects:
                                 del self.player1.effects['protection']
                             else:
-                                self.player1.lives -= 1
+                                self.player1.lives -= bullet.damage
                                 self._add_explosion(self.player1.x + self.player1.w//2, self.player1.y + self.player1.h//2)
                             if self.player1.lives <= 0:
                                 self.player1.alive = False
@@ -761,14 +764,16 @@ class Game:
             # ===== PVE 模式 =====
             else:
                 if bullet.is_player:
-                    # 玩家子弹 vs 敌人（包括 Boss）
+                    # 玩家子弹 vs 敌人
                     for enemy in self.enemies[:]:
-                        if enemy.alive and bullet.rect.colliderect(enemy.rect):
-                            # Boss 特殊处理
+                        if not enemy.alive:
+                            continue
+                        if bullet.rect.colliderect(enemy.rect):
+                            # 检查是否为 Boss
                             if hasattr(enemy, 'is_boss') and enemy.is_boss:
+                                # Boss 特殊处理
                                 enemy.lives -= bullet.damage
                                 bullet.alive = False
-                                print(f"Boss HP: {enemy.lives}/{enemy.max_hp}")
                                 if enemy.lives <= 0:
                                     enemy.alive = False
                                     self.score += 50
@@ -777,41 +782,39 @@ class Game:
                                         self._on_game_victory()
                                     else:
                                         self._on_boss_defeated()
-                                break
                             else:
                                 # 普通敌人
-                                bullet.alive = False
-                                if 'protection' in enemy.effects:
-                                    del enemy.effects['protection']
+                                if bullet.damage >= 2:
+                                    # Strength 子弹：范围爆炸
+                                    self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
+                                    bullet.alive = False
                                 else:
-                                    enemy.lives -= bullet.damage
-                                if enemy.lives <= 0:
-                                    enemy.alive = False
-                                    self.score += 10
-                                    self._add_explosion(enemy.x + enemy.w//2, enemy.y + enemy.h//2)
-                                break
+                                    bullet.alive = False
+                                    if 'protection' in enemy.effects:
+                                        del enemy.effects['protection']
+                                    else:
+                                        enemy.lives -= bullet.damage
+                                    if enemy.lives <= 0:
+                                        enemy.alive = False
+                                        self.score += 10
+                                        self._add_explosion(enemy.x + enemy.w//2, enemy.y + enemy.h//2)
+                            break
                 else:
-                    # 敌人子弹 vs 玩家（包括 Boss 子弹）
+                    # 敌人子弹 vs 玩家
                     for player in [self.player1, self.player2]:
                         if player is None or not player.alive:
                             continue
                         if bullet.rect.colliderect(player.rect):
                             if bullet.damage >= 2:
-                                # Strength 子弹直接伤害玩家
-                                if 'protection' in player.effects:
-                                    del player.effects['protection']
-                                else:
-                                    player.lives -= bullet.damage
-                                    self._add_explosion(player.x + player.w//2, player.y + player.h//2)
+                                # Strength 子弹：范围爆炸
+                                self._explode_at(bullet.x + bullet.w//2, bullet.y + bullet.h//2, bullet.is_player)
                                 bullet.alive = False
-                                if player.lives <= 0:
-                                    player.alive = False
                             else:
                                 bullet.alive = False
                                 if 'protection' in player.effects:
                                     del player.effects['protection']
                                 else:
-                                    player.lives -= 1
+                                    player.lives -= bullet.damage
                                     self._add_explosion(player.x + player.w//2, player.y + player.h//2)
                                 if player.lives <= 0:
                                     player.alive = False
@@ -957,6 +960,8 @@ class Game:
             for b in self.player2.bullets:
                 b.draw(screen)
 
+        self._draw_ui(screen)
+
         # ===== 字幕显示 =====
         if hasattr(self, 'show_message') and self.show_message:
             # 半透明背景
@@ -983,8 +988,6 @@ class Game:
         for p in self.powerups:
             p.draw(screen)
 
-        self._draw_ui(screen)
-
     def handle_key(self, key):
         if self.state != "playing":
             return self.menu.handle_event(pygame.event.Event(pygame.KEYDOWN, key=key))
@@ -995,19 +998,30 @@ class Game:
         font_small = pygame.font.SysFont("Consolas", 14)
         ui_y = 10
 
-        # ===== 在函数开头定义 map_names =====
         map_names = ["Empty", "Cross", "Maze", "Bunker", "Sym"]
-        # ====================================
 
-        # Mode
-        mode_text = "PVP" if self.pvp_mode else "PVE"
+        # ===== Mode / Level 显示 =====
+        if self.game_mode == "level":
+            mode_text = f"Level {self.level}/{MAX_LEVEL}"
+        elif self.pvp_mode:
+            mode_text = "PVP"
+        else:
+            mode_text = "PVE"
+    
         text = font.render(mode_text, True, COLORS['text'])
         screen.blit(text, (10, ui_y))
         ui_y += 25
 
         # Score (PVE only)
-        if not self.pvp_mode:
+        if not self.pvp_mode and self.game_mode == "endless":
             text = font.render(f"Score: {self.score}", True, COLORS['text'])
+            screen.blit(text, (10, ui_y))
+            ui_y += 25
+
+        # ===== 关卡模式：显示进度 =====
+        if self.game_mode == "level" and self.level_controller:
+            progress_text = f"Enemy: {len([e for e in self.enemies if e.alive])} / {self.level_controller.enemies_total}"
+            text = font.render(progress_text, True, COLORS['text'])
             screen.blit(text, (10, ui_y))
             ui_y += 25
 
@@ -1028,7 +1042,7 @@ class Game:
         ui_y += 25
 
         # Enemies (PVE only)
-        if not self.pvp_mode:
+        if not self.pvp_mode and self.game_mode == "endless":
             text = font.render(f"Enemy: {len(self.enemies)}/{ENEMY_COUNT}", True, COLORS['text'])
             screen.blit(text, (10, ui_y))
 
@@ -1060,16 +1074,17 @@ class Game:
             screen.blit(text, (WINDOW_WIDTH - 200, 10 + i * 20))
 
     def _explode_at(self, x, y, is_player):
-        """Strength 子弹爆炸"""
+        """Strength 子弹爆炸 - 范围伤害"""
         radius = TANK_SIZE * 2
-    
-        # 伤害所有敌人（包括 Boss）
+
+        # ===== 1. 伤害所有敌人 =====
         for enemy in self.enemies[:]:
             if not enemy.alive:
                 continue
             ex, ey = enemy.get_center()
             dist = math.hypot(ex - x, ey - y)
             if dist <= radius:
+                # 检查是否有保护
                 if 'protection' in enemy.effects:
                     del enemy.effects['protection']
                 else:
@@ -1079,7 +1094,7 @@ class Game:
                         self.score += 10
                         self._add_explosion(ex, ey)
 
-        # PVP 模式：伤害玩家
+        # ===== 2. PVP 模式：伤害玩家 =====
         if self.pvp_mode:
             for player in [self.player1, self.player2]:
                 if player and player.alive:
@@ -1094,7 +1109,7 @@ class Game:
                             if player.lives <= 0:
                                 player.alive = False
 
-        # 摧毁普通墙壁
+        # ===== 3. 摧毁普通墙壁 =====
         for wall in self.walls[:]:
             if not wall.alive or wall.is_steel:
                 continue
@@ -1102,7 +1117,7 @@ class Game:
             if math.hypot(wx - x, wy - y) <= radius:
                 wall.alive = False
 
-        # 爆炸特效
+        # ===== 4. 爆炸特效 =====
         for _ in range(8):
             self._add_explosion(
                 x + random.randint(-radius//2, radius//2),

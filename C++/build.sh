@@ -185,7 +185,7 @@ compile_mingw() {
     print_step "开始编译..."
     print_info "GCC: $(g++ --version | head -1)"
     
-    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp src/Menu.cpp src/PowerUp.cpp"
+    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp src/Menu.cpp src/PowerUp.cpp src/Boss.cpp src/LevelData.cpp src/LevelState.cpp src/SaveManager.cpp"
     
     g++ -std=c++17 -O2 -mwindows \
         $SOURCES \

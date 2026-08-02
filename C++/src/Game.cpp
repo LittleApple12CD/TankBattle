@@ -1,14 +1,34 @@
 #include "Game.h"
 #include "MapGenerator.h"
+#include "LevelState.h"
+#include "LevelData.h"
+#include "SaveManager.h"
+#include "Boss.h"
 #include <cmath>
 #include <algorithm>
 
 Game::Game()
     : player1(nullptr), player2(nullptr), enemySpawnTimer(0),
       score(0), gameOver(false), paused(false), currentMap(0), pvpMode(false),
-      singleMode(false),
+      singleMode(false), enemyCount(ENEMY_COUNT),
       rng(std::random_device{}()), dist(0.0f, 1.0f), intDist(0, 4) {
+
+    gameMode = "endless";
+    levelController = nullptr;
+    level = 1;
+    showMessage = "";
+    waitingForEnter = false;
+    victoryDone = false;
+
     initLevel();
+}
+
+Game::~Game() {
+    for (auto* enemy : enemies) delete enemy;
+    for (auto* ai : enemyAIs) delete ai;
+    delete player1;
+    delete player2;
+    delete levelController;
 }
 
 void Game::initLevel() {
@@ -18,34 +38,54 @@ void Game::initLevel() {
     enemySpawnTimer = 0;
     walls.clear();
     explosions.clear();
+
+    for (auto* enemy : enemies) delete enemy;
     enemies.clear();
+    for (auto* ai : enemyAIs) delete ai;
     enemyAIs.clear();
+
     delete player1;
     player1 = nullptr;
     delete player2;
     player2 = nullptr;
-    currentMap = intDist(rng);
-    MapGenerator::generateMap(currentMap, walls);
     powerups.clear();
     powerupTimer = 0.0f;
+
+    if (gameMode == "level") {
+        if (levelController != nullptr) {
+            delete levelController;
+        }
+        levelController = new LevelState::Controller();
+        levelController->startLevel(level);
+        
+        currentMap = LevelData::getMapId(level);
+        enemyCount = 0;
+        showMessage = "";
+        waitingForEnter = false;
+        victoryDone = false;
+    } else {
+        currentMap = intDist(rng);
+        enemyCount = ENEMY_COUNT;
+    }
     
-    // 玩家1（始终存在）
+    MapGenerator::generateMap(currentMap, walls);
+
     float p1x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     float p1y = GRID_OFFSET_Y + (GRID_SIZE-3)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     player1 = new Tank(p1x, p1y, COLOR_PLAYER1, TANK_SPEED, true, 1);
-    
-    // 玩家2：仅在双人模式存在
+
     if (!singleMode) {
         float p2x = GRID_OFFSET_X + (GRID_SIZE-2)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
         float p2y = GRID_OFFSET_Y + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
         player2 = new Tank(p2x, p2y, COLOR_PLAYER2, TANK_SPEED, true, 2);
     } else {
-        player2 = nullptr;  // 单人模式没有玩家2
+        player2 = nullptr;
     }
-    
-    // 生成敌人（使用 enemyCount）
-    if (!pvpMode) {
-        for (int i = 0; i < enemyCount; ++i) spawnEnemy();
+
+    if (gameMode == "endless" && !pvpMode) {
+        for (int i = 0; i < enemyCount; ++i) {
+            spawnEnemy();
+        }
     }
 }
 
@@ -57,7 +97,7 @@ void Game::togglePvpMode() {
 void Game::toggleSingleMode() {
     singleMode = !singleMode;
     if (singleMode) {
-        pvpMode = false;      // 单人模式禁用 PVP
+        pvpMode = false;
         enemyCount = ENEMY_COUNT;
     } else {
         enemyCount = ENEMY_COUNT;
@@ -65,93 +105,288 @@ void Game::toggleSingleMode() {
     initLevel();
 }
 
-
 void Game::spawnEnemy() {
     if (enemies.size() >= enemyCount) return;
-    
+
     int spawnPos[3][2] = {{GRID_SIZE-2,1},{GRID_SIZE/2,1},{1,1}};
     int idx = static_cast<int>(dist(rng)*3);
     if (idx >= 3) idx = 2;
     float x = GRID_OFFSET_X + spawnPos[idx][0]*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     float y = GRID_OFFSET_Y + spawnPos[idx][1]*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
-    
+
     sf::FloatRect testRect(sf::Vector2f(x,y), sf::Vector2f(TANK_SIZE,TANK_SIZE));
-    for (auto& enemy : enemies) {
-        if (testRect.findIntersection(enemy.getRect()).has_value()) return;
+    for (auto* enemy : enemies) {
+        if (testRect.findIntersection(enemy->getRect()).has_value()) return;
     }
     if (player1 && player1->isAlive() && testRect.findIntersection(player1->getRect()).has_value()) return;
     if (player2 && player2->isAlive() && testRect.findIntersection(player2->getRect()).has_value()) return;
-    
-    enemies.emplace_back(x, y, COLOR_ENEMY, TANK_SPEED*0.7f, false, 0);
-    enemyAIs.emplace_back(&enemies.back(), this);
+
+    Tank* enemy = new Tank(x, y, COLOR_ENEMY, TANK_SPEED*0.7f, false, 0);
+    enemies.push_back(enemy);
+    enemyAIs.push_back(new EnemyAI(enemy, this));
 }
 
 void Game::update(float dt) {
     if (gameOver || paused) return;
 
     updatePowerups(dt);
-    
+
     if (player1 && player1->isAlive()) player1->update(dt);
     if (player2 && player2->isAlive()) player2->update(dt);
-    
+
     if (!pvpMode) {
-        for (auto& ai : enemyAIs) {
-            ai.update(dt);
+        for (auto* ai : enemyAIs) {
+            ai->update(dt);
         }
-        
+
         auto it = enemies.begin();
         auto aiIt = enemyAIs.begin();
         while (it != enemies.end()) {
-            if (!it->isAlive()) {
+            if (!(*it)->isAlive()) {
+                delete *it;
                 it = enemies.erase(it);
+                delete *aiIt;
                 aiIt = enemyAIs.erase(aiIt);
             } else {
                 ++it;
                 ++aiIt;
             }
         }
-        
-        enemySpawnTimer -= dt;
-        if (enemySpawnTimer <= 0 && enemies.size() < ENEMY_COUNT) {
-            spawnEnemy();
-            enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
+
+        if (gameMode == "endless") {
+            enemySpawnTimer -= dt;
+            if (enemySpawnTimer <= 0 && enemies.size() < ENEMY_COUNT) {
+                spawnEnemy();
+                enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
+            }
+        } else {
+            updateLevelEnemySpawn(dt);
         }
     }
-    
+
     handleBulletCollisions();
-    
+
     for (int i = explosions.size() - 1; i >= 0; --i) {
         explosions[i].update(dt);
         if (!explosions[i].isAlive()) {
             explosions.erase(explosions.begin() + i);
         }
     }
-    
+
     if (pvpMode) {
         if ((player1 && !player1->isAlive()) || (player2 && !player2->isAlive())) {
             gameOver = true;
         }
     } else {
-        if (player1 && !player1->isAlive() && player2 && !player2->isAlive()) {
-            gameOver = true;
-        }
-    }
-
-    if (singleMode) {
-        if (player1 && !player1->isAlive()) {
-            gameOver = true;
-        }
-    } else {
-        if (player1 && !player1->isAlive() && player2 && !player2->isAlive()) {
-            gameOver = true;
+        if (singleMode) {
+            if (player1 && !player1->isAlive()) {
+                gameOver = true;
+            }
+        } else {
+            if (player1 && !player1->isAlive() && player2 && !player2->isAlive()) {
+                gameOver = true;
+            }
         }
     }
 }
 
+void Game::updateLevelEnemySpawn(float dt) {
+    if (levelController == nullptr) return;
+
+    int enemiesAlive = 0;
+    for (auto* enemy : enemies) {
+        if (enemy->isAlive()) enemiesAlive++;
+    }
+
+    std::string result = levelController->update(dt, enemiesAlive);
+
+    if (result == "spawn_enemy") {
+        spawnEnemyForLevel();
+    } else if (result == "spawn_boss") {
+        spawnBoss();
+    } else if (result == "level_cleared") {
+        onLevelCleared();
+    } else if (result == "boss_defeated") {
+        onBossDefeated();
+    } else if (result == "game_victory") {
+        onGameVictory();
+    } else if (result == "gameover") {
+        onLevelFailed();
+    } else if (result == "victory_done") {
+        victoryDone = true;
+    }
+}
+
+void Game::spawnEnemyForLevel() {
+    if (levelController == nullptr) return;
+    const LevelData::LevelConfig* config = LevelData::getLevelConfig(level);
+    if (config == nullptr) return;
+
+    std::string typeName = config->enemyType;
+    if (typeName.empty()) return;
+
+    auto it = LevelData::ENEMY_TYPES.find(typeName);
+    if (it == LevelData::ENEMY_TYPES.end()) {
+        it = LevelData::ENEMY_TYPES.find("normal");
+        if (it == LevelData::ENEMY_TYPES.end()) return;
+    }
+
+    const LevelData::EnemyType& enemyType = it->second;
+    int hp = enemyType.hp;
+    float speedMult = static_cast<float>(enemyType.speedMult);
+    sf::Color color = enemyType.color;
+
+    int spawnPos[3][2] = {{GRID_SIZE-2, 1}, {GRID_SIZE/2, 1}, {1, 1}};
+    int idx = static_cast<int>(dist(rng) * 3);
+    if (idx >= 3) idx = 2;
+
+    float x = GRID_OFFSET_X + spawnPos[idx][0] * CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+    float y = GRID_OFFSET_Y + spawnPos[idx][1] * CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+
+    sf::FloatRect testRect(sf::Vector2f(x, y), sf::Vector2f(TANK_SIZE, TANK_SIZE));
+    for (auto* enemy : enemies) {
+        if (enemy->isAlive() && testRect.findIntersection(enemy->getRect()).has_value()) {
+            return;
+        }
+    }
+    if (player1 && player1->isAlive() && testRect.findIntersection(player1->getRect()).has_value()) {
+        return;
+    }
+
+    Tank* enemy = new Tank(x, y, color, TANK_SPEED * speedMult, false, 0);
+    enemy->setLives(hp);
+    enemies.push_back(enemy);
+    enemyAIs.push_back(new EnemyAI(enemy, this));
+}
+
+void Game::spawnBoss() {
+    const LevelData::BossConfig* bossConfig = LevelData::getBossConfig(level);
+    if (bossConfig == nullptr) return;
+
+    int bossSize = static_cast<int>(TANK_SIZE * bossConfig->sizeMult);
+    float x = GRID_OFFSET_X + GRID_SIZE * CELL_SIZE / 2.0f - bossSize / 2.0f;
+    float y = GRID_OFFSET_Y + CELL_SIZE * 2;
+
+    Boss* boss = new Boss(x, y, bossConfig->hp, bossConfig->sizeMult,
+                          bossConfig->speedMult, bossConfig->bulletDamage,
+                          bossConfig->bulletSpeedMult);
+    boss->setLives(bossConfig->hp);
+    boss->isBoss = true;
+
+    enemies.push_back(boss);
+    enemyAIs.push_back(new EnemyAI(boss, this));
+
+    if (levelController != nullptr) {
+        levelController->onBossSpawned();
+    }
+}
+
+// ===== 关卡事件 =====
+
+void Game::onLevelCleared() {
+    showMessage = "STAGE CLEAR!";
+    waitingForEnter = true;
+    if (levelController != nullptr) {
+        levelController->setState(LevelState::State::CLEARED);
+        levelController->setWaitTimer(999.0);
+    }
+    SaveManager::saveProgress(level);
+}
+
+void Game::onBossDefeated() {
+    showMessage = "BOSS DEFEATED!";
+    waitingForEnter = true;
+    if (levelController != nullptr) {
+        levelController->setState(LevelState::State::CLEARED);
+        levelController->setWaitTimer(999.0);
+    }
+    SaveManager::saveProgress(level);
+}
+
+void Game::onGameVictory() {
+    showMessage = "GAME VICTORY!";
+    waitingForEnter = true;
+    if (levelController != nullptr) {
+        levelController->setState(LevelState::State::VICTORY);
+        levelController->setWaitTimer(999.0);
+    }
+    SaveManager::saveProgress(10);
+}
+
+void Game::onLevelFailed() {
+    gameOver = true;
+    showMessage = "GAME OVER";
+    waitingForEnter = true;
+}
+
+// ===== continueToNext =====
+void Game::continueToNext() {
+    if (!waitingForEnter) return;
+
+    waitingForEnter = false;
+    showMessage = "";
+
+    // 检查是否通关游戏（第10关完成）
+    if (level >= LevelData::MAX_LEVEL) {
+        if (level == LevelData::MAX_LEVEL) {
+            showMessage = "GAME VICTORY!";
+            waitingForEnter = true;
+            victoryDone = true;
+            if (levelController != nullptr) {
+                levelController->setState(LevelState::State::VICTORY);
+            }
+            SaveManager::saveProgress(level);
+            return;
+        }
+        victoryDone = true;
+        return;
+    }
+
+    // 检查是否为 Boss 关卡（已经被击败）
+    bool isBossLevel = LevelData::isBossLevel(level);
+    
+    // 进入下一关
+    level++;
+    SaveManager::saveProgress(level);
+
+    // 重置关卡控制器
+    if (levelController != nullptr) {
+        delete levelController;
+        levelController = new LevelState::Controller();
+        levelController->startLevel(level);
+    }
+
+    // 重置玩家
+    if (player1 != nullptr) {
+        player1->setLives(PLAYER_LIVES);
+        player1->effects.clear();
+        player1->x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        player1->y = GRID_OFFSET_Y + (GRID_SIZE-3)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        player1->setAlive(true);
+        player1->w = TANK_SIZE;
+        player1->h = TANK_SIZE;
+    }
+    delete player2;
+    player2 = nullptr;
+
+    // 清除敌人
+    for (auto* enemy : enemies) delete enemy;
+    enemies.clear();
+    for (auto* ai : enemyAIs) delete ai;
+    enemyAIs.clear();
+
+    // 初始化关卡
+    this->currentMap = LevelData::getMapId(level);
+    initLevel();
+    this->gameMode = "level";
+    this->victoryDone = false;
+}
+
+// ===== 子弹碰撞 =====
 
 void Game::handleBulletCollisions() {
     std::vector<Bullet*> allBullets;
-    
+
     if (player1) {
         for (auto& b : player1->bullets) allBullets.push_back(&b);
     }
@@ -159,21 +394,20 @@ void Game::handleBulletCollisions() {
         for (auto& b : player2->bullets) allBullets.push_back(&b);
     }
     if (!pvpMode) {
-        for (auto& enemy : enemies) {
-            for (auto& b : enemy.bullets) allBullets.push_back(&b);
+        for (auto* enemy : enemies) {
+            for (auto& b : enemy->bullets) allBullets.push_back(&b);
         }
     }
 
     for (auto* bullet : allBullets) {
         if (!bullet->isAlive()) continue;
-        
+
         bool bulletHit = false;
-        
-        // ===== 子弹 vs 墙壁 =====
+
+        // 子弹 vs 墙壁
         for (auto& wall : walls) {
             if (!wall.isAlive()) continue;
             if (bullet->getRect().findIntersection(wall.getRect()).has_value()) {
-                // Strength 子弹：爆炸
                 if (bullet->damage == 2 && bullet->isPlayerBullet()) {
                     explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
                     bullet->setAlive(false);
@@ -191,7 +425,7 @@ void Game::handleBulletCollisions() {
         }
         if (bulletHit || !bullet->isAlive()) continue;
 
-        // ===== PVP 模式 =====
+        // PVP 模式
         if (pvpMode) {
             if (bullet->isPlayerBullet() && bullet->getPlayerId() == 1) {
                 if (player2 && player2->isAlive() && bullet->getRect().findIntersection(player2->getRect()).has_value()) {
@@ -230,25 +464,46 @@ void Game::handleBulletCollisions() {
                 }
             }
         } else {
-            // ===== PVE 模式 =====
+            // PVE 模式
             if (bullet->isPlayerBullet()) {
-                // 玩家子弹 vs 敌人
-                for (auto& enemy : enemies) {
-                    if (enemy.isAlive() && bullet->getRect().findIntersection(enemy.getRect()).has_value()) {
-                        if (bullet->damage == 2 && bullet->isPlayerBullet()) {
-                            explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                for (auto* enemy : enemies) {
+                    if (!enemy->isAlive()) continue;
+                    if (bullet->getRect().findIntersection(enemy->getRect()).has_value()) {
+
+                        // 检查是否为 Boss
+                        if (enemy->isBoss) {
+                            enemy->setLives(enemy->getLives() - bullet->damage);
                             bullet->setAlive(false);
-                        } else {
-                            bullet->setAlive(false);
-                            if (enemy.effects.find("protection") != enemy.effects.end()) {
-                                enemy.effects.erase("protection");
-                            } else {
-                                enemy.setLives(enemy.getLives() - bullet->damage);
+
+                            if (enemy->getLives() <= 0) {
+                                enemy->setAlive(false);
+                                score += 50;
+                                addExplosion(enemy->getCenter().x, enemy->getCenter().y);
+
+                                // 判断是否为最后一关
+                                if (level >= LevelData::MAX_LEVEL) {
+                                    onGameVictory();
+                                } else {
+                                    onBossDefeated();
+                                }
                             }
-                            if (enemy.getLives() <= 0) {
-                                enemy.setAlive(false);
-                                score += 10;
-                                addExplosion(enemy.getCenter().x, enemy.getCenter().y);
+                        } else {
+                            // 普通敌人
+                            if (bullet->damage == 2 && bullet->isPlayerBullet()) {
+                                explodeAt(bullet->getX() + BULLET_SIZE/2.0f, bullet->getY() + BULLET_SIZE/2.0f);
+                                bullet->setAlive(false);
+                            } else {
+                                bullet->setAlive(false);
+                                if (enemy->effects.find("protection") != enemy->effects.end()) {
+                                    enemy->effects.erase("protection");
+                                } else {
+                                    enemy->setLives(enemy->getLives() - bullet->damage);
+                                }
+                                if (enemy->getLives() <= 0) {
+                                    enemy->setAlive(false);
+                                    score += 10;
+                                    addExplosion(enemy->getCenter().x, enemy->getCenter().y);
+                                }
                             }
                         }
                         break;
@@ -278,8 +533,7 @@ void Game::handleBulletCollisions() {
             }
         }
     }
-    
-    // 清理死亡子弹
+
     if (player1) {
         player1->bullets.remove_if([](const Bullet& b){ return !b.isAlive(); });
     }
@@ -287,11 +541,13 @@ void Game::handleBulletCollisions() {
         player2->bullets.remove_if([](const Bullet& b){ return !b.isAlive(); });
     }
     if (!pvpMode) {
-        for (auto& enemy : enemies) {
-            enemy.bullets.remove_if([](const Bullet& b){ return !b.isAlive(); });
+        for (auto* enemy : enemies) {
+            enemy->bullets.remove_if([](const Bullet& b){ return !b.isAlive(); });
         }
     }
 }
+
+// ===== 辅助方法 =====
 
 void Game::addExplosion(float x, float y) {
     for (int i=0; i<4; ++i) {
@@ -325,52 +581,43 @@ void Game::player2Shoot() {
 
 sf::Font Game::loadFont() {
     sf::Font font;
-    
-    // 中文字体路径（按优先级排列）
     const char* paths[] = {
-        // Windows 中文字体
-        "C:/Windows/Fonts/simhei.ttf",        // 黑体
-        "C:/Windows/Fonts/msyh.ttc",          // 微软雅黑
-        "C:/Windows/Fonts/simsun.ttc",        // 宋体
-        "C:/Windows/Fonts/simkai.ttf",        // 楷体
-        "C:/Windows/Fontmsyh.ttc",            // 微软雅黑（备用路径）
-        // Linux 中文字体
+        "C:/Windows/Fonts/simhei.ttf",
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/simsun.ttc",
+        "C:/Windows/Fonts/simkai.ttf",
+        "C:/Windows/Fontmsyh.ttc",
         "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
         "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        // 英文字体（备选）
         "C:/Windows/Fonts/consola.ttf",
         "C:/Windows/Fonts/arial.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     };
-    
     for (const char* p : paths) {
         if (font.openFromFile(p)) {
             return font;
         }
     }
-    
-    // 如果所有字体都加载失败，返回空字体（图形界面会用默认字体，可能显示方框）
     return font;
 }
 
 void Game::draw(sf::RenderWindow& window) {
     window.clear(COLOR_BG);
 
-    // 网格
     for (int i=0; i<=GRID_SIZE; ++i) {
         sf::Vertex hLine[2];
         hLine[0].position = sf::Vector2f(GRID_OFFSET_X + i*CELL_SIZE, GRID_OFFSET_Y);
         hLine[0].color = COLOR_GRID;
         hLine[1].position = sf::Vector2f(GRID_OFFSET_X + i*CELL_SIZE, GRID_OFFSET_Y + GRID_SIZE*CELL_SIZE);
         hLine[1].color = COLOR_GRID;
-        
+
         sf::Vertex vLine[2];
         vLine[0].position = sf::Vector2f(GRID_OFFSET_X, GRID_OFFSET_Y + i*CELL_SIZE);
         vLine[0].color = COLOR_GRID;
         vLine[1].position = sf::Vector2f(GRID_OFFSET_X + GRID_SIZE*CELL_SIZE, GRID_OFFSET_Y + i*CELL_SIZE);
         vLine[1].color = COLOR_GRID;
-        
+
         window.draw(hLine, 2, sf::PrimitiveType::Lines);
         window.draw(vLine, 2, sf::PrimitiveType::Lines);
     }
@@ -380,57 +627,98 @@ void Game::draw(sf::RenderWindow& window) {
     border.setFillColor(sf::Color::Transparent);
     border.setOutlineColor(sf::Color(60,60,80));
     border.setOutlineThickness(2.0f);
-    // border.setCornerRadius(4.0f);  // SFML 3.0 不支持
     window.draw(border);
 
     for (auto& p : powerups) {
         p.draw(window);
     }
 
-    // 墙壁
     for (auto& wall : walls) wall.draw(window);
-    
+
     // 敌人
     if (!pvpMode) {
-        for (auto& enemy : enemies) enemy.draw(window);
+        for (auto* enemy : enemies) {
+            enemy->draw(window);
+        }
     }
-    
-    // 玩家
+
     if (player1) player1->draw(window);
     if (player2) player2->draw(window);
-    
-    // 爆炸
+
+    // 子弹（包括 Boss 子弹）
+    if (!pvpMode) {
+        for (auto* enemy : enemies) {
+            for (auto& b : enemy->bullets) {
+                b.draw(window);
+            }
+        }
+    }
+    if (player1) {
+        for (auto& b : player1->bullets) b.draw(window);
+    }
+    if (player2) {
+        for (auto& b : player2->bullets) b.draw(window);
+    }
+
     for (auto& exp : explosions) exp.draw(window);
-    
-    // UI
+
+    // 绘制 UI
     drawUI(window);
+
+    // 关卡消息（最上层）
+    if (!showMessage.empty()) {
+        sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+        overlay.setFillColor(sf::Color(0, 0, 0, 180));
+        window.draw(overlay);
+
+        sf::Font font;
+        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
+            sf::Text msg(font, showMessage, 72);
+            msg.setFillColor(sf::Color(255, 255, 100));
+            msg.setStyle(sf::Text::Bold);
+            sf::FloatRect bounds = msg.getLocalBounds();
+            msg.setPosition(sf::Vector2f(WINDOW_WIDTH/2.0f - bounds.size.x/2.0f,
+                                         WINDOW_HEIGHT/2.0f - 40.0f));
+            window.draw(msg);
+
+            if (waitingForEnter) {
+                sf::Text hint(font, "Press ENTER to continue", 28);
+                hint.setFillColor(sf::Color(200, 200, 200));
+                bounds = hint.getLocalBounds();
+                hint.setPosition(sf::Vector2f(WINDOW_WIDTH/2.0f - bounds.size.x/2.0f,
+                                              WINDOW_HEIGHT/2.0f + 40.0f));
+                window.draw(hint);
+            }
+        }
+    }
 }
 
 void Game::drawUI(sf::RenderWindow& window) {
     sf::Font font;
-    
-    // 英文字体（Windows 一定有 Arial）
     if (!font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
-        // 如果 Arial 加载失败，尝试 consola
         (void)font.openFromFile("C:/Windows/Fonts/consola.ttf");
     }
-    
-    if (font.getInfo().family.empty()) {
-        return;
-    }
-    
+
+    if (font.getInfo().family.empty()) return;
+
     int uiY = 10;
-    
-    // Mode
-    std::string modeText = singleMode ? "Single" : (pvpMode ? "PVP" : "PVE");
+
+    std::string modeText;
+    if (gameMode == "level") {
+        modeText = "Level " + std::to_string(level) + "/" + std::to_string(LevelData::MAX_LEVEL);
+    } else if (singleMode) {
+        modeText = "Single";
+    } else {
+        modeText = pvpMode ? "PVP" : "PVE";
+    }
+
     sf::Text modeLabel(font, modeText, 18);
     modeLabel.setFillColor(pvpMode ? COLOR_PVP : COLOR_TEXT);
     modeLabel.setPosition(sf::Vector2f(10, uiY));
     window.draw(modeLabel);
     uiY += 30;
 
-    // Score (PVE only)
-    if (!pvpMode) {
+    if (!pvpMode && gameMode == "endless") {
         sf::Text scoreText(font, "Score: " + std::to_string(score), 18);
         scoreText.setFillColor(COLOR_TEXT);
         scoreText.setPosition(sf::Vector2f(10, uiY));
@@ -438,40 +726,45 @@ void Game::drawUI(sf::RenderWindow& window) {
         uiY += 30;
     }
 
-    // P1 Lives
+    if (gameMode == "level" && levelController != nullptr) {
+        sf::Text progressText(font,
+            "Enemy: " + std::to_string(enemies.size()) + " / " +
+            std::to_string(levelController->getEnemiesTotal()), 18);
+        progressText.setFillColor(COLOR_TEXT);
+        progressText.setPosition(sf::Vector2f(10, uiY));
+        window.draw(progressText);
+        uiY += 30;
+    }
+
     std::string p1Text = "P1: ";
-    for (int i=0; i<(player1?player1->getLives():0); ++i) p1Text += "[] ";
+    for (int i = 0; i < (player1 ? player1->getLives() : 0); ++i) p1Text += "[] ";
     sf::Text p1Label(font, p1Text, 18);
     p1Label.setFillColor(COLOR_PLAYER1);
     p1Label.setPosition(sf::Vector2f(10, uiY));
     window.draw(p1Label);
     uiY += 30;
 
-    // P2 Lives
     std::string p2Text = "P2: ";
-    for (int i=0; i<(player2?player2->getLives():0); ++i) p2Text += "[] ";
+    for (int i = 0; i < (player2 ? player2->getLives() : 0); ++i) p2Text += "[] ";
     sf::Text p2Label(font, p2Text, 18);
     p2Label.setFillColor(COLOR_PLAYER2);
     p2Label.setPosition(sf::Vector2f(10, uiY));
     window.draw(p2Label);
     uiY += 30;
 
-    // Enemies (PVE only)
-    if (!pvpMode) {
+    if (!pvpMode && gameMode == "endless") {
         sf::Text enemyText(font, "Enemy: " + std::to_string(enemies.size()) + "/" + std::to_string(ENEMY_COUNT), 18);
         enemyText.setFillColor(COLOR_TEXT);
         enemyText.setPosition(sf::Vector2f(10, uiY));
         window.draw(enemyText);
     }
 
-    // Map name
     std::string mapNames[] = {"Empty", "Cross", "Maze", "Bunker", "Sym"};
     sf::Text mapText(font, "Map: " + mapNames[currentMap], 14);
     mapText.setFillColor(COLOR_TEXT_DIM);
     mapText.setPosition(sf::Vector2f(10, WINDOW_HEIGHT - 20));
     window.draw(mapText);
 
-    // Pause
     if (paused) {
         sf::Text pauseText(font, "PAUSED", 36);
         pauseText.setFillColor(sf::Color::White);
@@ -479,27 +772,25 @@ void Game::drawUI(sf::RenderWindow& window) {
         window.draw(pauseText);
     }
 
-    // Game Over
     if (gameOver) {
         sf::Text overText(font, "GAME OVER", 36);
         overText.setFillColor(sf::Color(255,50,50));
         overText.setPosition(sf::Vector2f(WINDOW_WIDTH/2.0f - 120.0f, WINDOW_HEIGHT/2.0f - 20.0f));
         window.draw(overText);
-        
+
         sf::Text restartText(font, "Press R to restart", 18);
         restartText.setFillColor(COLOR_TEXT);
         restartText.setPosition(sf::Vector2f(WINDOW_WIDTH/2.0f - 80.0f, WINDOW_HEIGHT/2.0f + 40.0f));
         window.draw(restartText);
     }
 
-    // Controls
     const char* controls[] = {
         "P1: Arrows + SPACE",
         "P2: WASD + J",
         "G: PVP/PVE  P: Pause  R: Restart",
         "ESC: Exit"
     };
-    for (int i=0; i<4; ++i) {
+    for (int i = 0; i < 4; ++i) {
         sf::Text ctrlText(font, controls[i], 14);
         ctrlText.setFillColor(COLOR_TEXT_DIM);
         ctrlText.setPosition(sf::Vector2f(WINDOW_WIDTH - 200.0f, 10.0f + i*20.0f));
@@ -520,12 +811,11 @@ void Game::updatePowerups(float dt) {
             continue;
         }
 
-        // 检查所有坦克
         std::vector<Tank*> allTanks;
         if (player1 && player1->isAlive()) allTanks.push_back(player1);
         if (player2 && player2->isAlive()) allTanks.push_back(player2);
-        for (auto& enemy : enemies) {
-            if (enemy.isAlive()) allTanks.push_back(&enemy);
+        for (auto* enemy : enemies) {
+            if (enemy->isAlive()) allTanks.push_back(enemy);
         }
 
         bool picked = false;
@@ -591,18 +881,17 @@ void Game::applyPowerup(Tank* tank, PowerUp* powerup) {
 void Game::explodeAt(float x, float y) {
     float radius = TANK_SIZE * 2.0f;
 
-    // 伤害敌人
-    for (auto& enemy : enemies) {
-        if (!enemy.isAlive()) continue;
-        sf::Vector2f eCenter = enemy.getCenter();
+    for (auto* enemy : enemies) {
+        if (!enemy->isAlive()) continue;
+        sf::Vector2f eCenter = enemy->getCenter();
         float dist = std::sqrt(std::pow(eCenter.x - x, 2) + std::pow(eCenter.y - y, 2));
         if (dist <= radius) {
-            if (enemy.effects.find("protection") != enemy.effects.end()) {
-                enemy.effects.erase("protection");
+            if (enemy->effects.find("protection") != enemy->effects.end()) {
+                enemy->effects.erase("protection");
             } else {
-                enemy.setLives(enemy.getLives() - 2);
-                if (enemy.getLives() <= 0) {
-                    enemy.setAlive(false);
+                enemy->setLives(enemy->getLives() - 2);
+                if (enemy->getLives() <= 0) {
+                    enemy->setAlive(false);
                     score += 10;
                     addExplosion(eCenter.x, eCenter.y);
                 }
@@ -610,7 +899,6 @@ void Game::explodeAt(float x, float y) {
         }
     }
 
-    // PVP 模式：伤害玩家
     if (pvpMode) {
         for (Tank* player : {player1, player2}) {
             if (!player || !player->isAlive()) continue;
@@ -630,7 +918,6 @@ void Game::explodeAt(float x, float y) {
         }
     }
 
-    // 摧毁普通墙壁
     for (auto& wall : walls) {
         if (!wall.isAlive() || wall.isSteel()) continue;
         sf::Vector2f wCenter(wall.x + wall.w/2.0f, wall.y + wall.h/2.0f);
@@ -640,10 +927,43 @@ void Game::explodeAt(float x, float y) {
         }
     }
 
-    // 爆炸特效
     for (int i = 0; i < 8; ++i) {
         float ox = x + (static_cast<float>(rand()) / RAND_MAX - 0.5f) * radius;
         float oy = y + (static_cast<float>(rand()) / RAND_MAX - 0.5f) * radius;
         addExplosion(ox, oy);
     }
+}
+
+// ===== 关卡模式 =====
+
+void Game::startLevelMode(int level) {
+    this->gameMode = "level";
+    this->level = level;
+    this->singleMode = true;
+    this->pvpMode = false;
+    this->enemyCount = 0;
+
+    this->levelController = new LevelState::Controller();
+    this->levelController->startLevel(level);
+
+    if (player1 != nullptr) {
+        player1->setLives(PLAYER_LIVES);
+        player1->effects.clear();
+        player1->x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        player1->y = GRID_OFFSET_Y + (GRID_SIZE-3)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
+        player1->setAlive(true);
+        player1->w = TANK_SIZE;
+        player1->h = TANK_SIZE;
+    }
+    delete player2;
+    player2 = nullptr;
+
+    this->currentMap = LevelData::getMapId(level);
+    initLevel();
+
+    SaveManager::saveProgress(level);
+
+    this->showMessage = "";
+    this->waitingForEnter = false;
+    this->victoryDone = false;
 }

@@ -16,18 +16,31 @@ struct TrailPoint {
 class Tank {
 public:
     Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int playerId);
-    void update(float dt);
-    void draw(sf::RenderWindow& window);
-    void move(int dx, int dy, std::vector<Wall>& walls);
-    Bullet* shoot();
-    sf::FloatRect getRect() const;
-    sf::Vector2f getCenter() const;
-    sf::Vector2f getFirePoint() const;
+    virtual ~Tank() = default;
+
+    virtual void update(float dt);
+    virtual void draw(sf::RenderWindow& window);
+    virtual void move(int dx, int dy, std::vector<Wall>& walls);
+    virtual Bullet* shoot();
+    virtual sf::FloatRect getRect() const;
+    virtual sf::Vector2f getCenter() const;
+    virtual sf::Vector2f getFirePoint() const;
+    
     bool isAlive() const { return alive; }
     void setAlive(bool a) { alive = a; }
     int getLives() const { return lives; }
     void setLives(int l) { lives = l; }
     void setDirection(float dx, float dy) { dirX = dx; dirY = dy; }
+    float x, y, w, h;
+    sf::Color color;
+    float speed;
+    bool player;
+    int playerId;
+    float dirX, dirY;
+    int lives;
+    float cooldown;
+    bool alive;
+    bool isBoss = false;
     
     std::list<Bullet> bullets;
     std::list<TrailPoint> trailPoints;  // 行驶痕迹
@@ -55,15 +68,4 @@ public:
     int getBulletDamage() const {
         return (effects.find("strength") != effects.end()) ? 2 : 1;
     }
-
-private:
-    float x, y, w, h;
-    sf::Color color;
-    float speed;
-    bool player;
-    int playerId;
-    float dirX, dirY;
-    int lives;
-    float cooldown;
-    bool alive;
 };
