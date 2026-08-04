@@ -1,9 +1,10 @@
 # 坦克大战
 
-**Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式**。本项目用 **Python、Java、C++** 三种语言实现，使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
+**Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式** 和 **关卡** 模式。本项目用 **Python、Java、C++** 三种语言实现，使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
 
 ## 游戏模式
 
+- **关卡模式**：玩家击杀1-10关的敌人和boss，取得胜利
 - **PVE 合作模式**：P1 + P2 联手对抗红色 AI 坦克，消灭敌人获得分数
 - **PVP 对战模式**：P1 与 P2 互相射击，先消灭对方者获胜
 - **5 种随机地图**：每次按 `R` 键随机切换地图布局
@@ -21,6 +22,7 @@
 | **P 键** | 暂停/继续 |
 | **R 键** | 重新开始（随机换地图） |
 | **ESC 键** | 退出游戏 |
+| **Enter 键** | 确定/下一关 |
 
 ---
 
@@ -48,6 +50,10 @@ TankBattle/
 │ ├── config.py
 │ ├── menu.py
 │ ├── icon.ico
+│ ├── level_data.py
+│ ├── level_state.py
+│ ├── boss.py
+│ ├── save_manager.py
 │ └── package.bat
 │
 ├── Java/ # Java 版本（Swing）
@@ -63,6 +69,10 @@ TankBattle/
 │ │ ├── icon.png
 │ │ ├── Menu.java
 │ │ ├── PowerUp.java
+│ │ ├── LevelData.java
+│ │ ├── LevelState.java
+│ │ ├── Boss.java
+│ │ ├── SaveManager.java
 │ │ └── Utils.java
 │ ├── compile.bat
 │ └── build.bat
@@ -80,6 +90,10 @@ TankBattle/
 │ ├── Menu.cpp/.h
 │ ├── PowerUp.cpp/.h
 │ ├── icon.ico
+│ ├── LevelData.cpp/h
+│ ├── LevelState.cpp/h
+│ ├── Boss.cpp/h
+│ ├── SaveManager.cpp/h
 │ └── Utils.h
 ├── build.sh
 ├── icon.png
