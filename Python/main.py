@@ -8,6 +8,7 @@ from config import *
 from game import Game
 from menu import Menu
 from save_manager import has_save, load_progress
+from sound_manager import SoundManager
 
 
 class TankBattle:
@@ -21,6 +22,8 @@ class TankBattle:
         self.menu = Menu(self.screen)
         self.game = None
         self.running = True
+        self.sound_manager = SoundManager()
+        self.sound_manager.load_sounds()
         
         # P1 按键状态
         self.p1_keys = {

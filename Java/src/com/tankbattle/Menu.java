@@ -1,11 +1,10 @@
 package com.tankbattle;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import static com.tankbattle.Utils.*;
 
-public class Menu extends JPanel {
+public class Menu {
     private String[] mainItems = {"Single Player", "Multiplayer", "Mod", "Settings", "Exit"};
     private String[] singleItems = {"Endless Mode", "Level Mode", "Back"};
     private String[] levelItems = {"Load Game", "New Game", "Back"};
@@ -16,22 +15,15 @@ public class Menu extends JPanel {
     private int selected = 0;
     private String state = "main"; // main, single, level, multiplayer, mode
 
-    public Menu() {
-        setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
-        setBackground(new Color(20, 20, 30));
-        setFocusable(true);
-        setOpaque(true);
-    }
+    public Menu() {}
 
     public String handleKeyPress(int keyCode) {
         switch (keyCode) {
             case KeyEvent.VK_UP:
                 selected = (selected - 1 + currentItems.length) % currentItems.length;
-                repaint();
                 return null;
             case KeyEvent.VK_DOWN:
                 selected = (selected + 1) % currentItems.length;
-                repaint();
                 return null;
             case KeyEvent.VK_ENTER:
                 return selectCurrent();
@@ -40,7 +32,6 @@ public class Menu extends JPanel {
                     System.exit(0);
                 } else {
                     goBack();
-                    repaint();
                 }
                 return null;
             default:
@@ -56,13 +47,11 @@ public class Menu extends JPanel {
                 state = "single";
                 currentItems = singleItems;
                 selected = 0;
-                repaint();
                 return null;
             } else if (choice.equals("Multiplayer")) {
                 state = "multiplayer";
                 currentItems = multiItems;
                 selected = 0;
-                repaint();
                 return null;
             } else if (choice.equals("Mod")) {
                 System.out.println("Mod mode - reserved for future");
@@ -80,11 +69,9 @@ public class Menu extends JPanel {
                 state = "level";
                 currentItems = levelItems;
                 selected = 0;
-                repaint();
                 return null;
             } else if (choice.equals("Back")) {
                 goBack();
-                repaint();
                 return null;
             }
         } else if (state.equals("level")) {
@@ -94,7 +81,6 @@ public class Menu extends JPanel {
                 return "new_game";
             } else if (choice.equals("Back")) {
                 goBack();
-                repaint();
                 return null;
             }
         } else if (state.equals("multiplayer")) {
@@ -102,7 +88,6 @@ public class Menu extends JPanel {
                 state = "mode";
                 currentItems = modeItems;
                 selected = 0;
-                repaint();
                 return null;
             } else if (choice.equals("Lan")) {
                 System.out.println("Lan mode - reserved for future");
@@ -112,7 +97,6 @@ public class Menu extends JPanel {
                 return null;
             } else if (choice.equals("Back")) {
                 goBack();
-                repaint();
                 return null;
             }
         } else if (state.equals("mode")) {
@@ -122,7 +106,6 @@ public class Menu extends JPanel {
                 return "pve";
             } else if (choice.equals("Back")) {
                 goBack();
-                repaint();
                 return null;
             }
         }
@@ -153,32 +136,30 @@ public class Menu extends JPanel {
         selected = 0;
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    // ===== 绘制方法 =====
+    public void draw(Graphics2D g) {
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        g2d.setColor(new Color(20, 20, 30));
-        g2d.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(new Color(20, 20, 30));
+        g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Consolas", Font.BOLD, 72));
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Consolas", Font.BOLD, 72));
         String title = "Tank Battle";
-        FontMetrics fm = g2d.getFontMetrics();
-        g2d.drawString(title, (getWidth() - fm.stringWidth(title)) / 2, 200);
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(title, (WINDOW_WIDTH - fm.stringWidth(title)) / 2, 200);
 
-        g2d.setFont(new Font("Consolas", Font.PLAIN, 36));
+        g.setFont(new Font("Consolas", Font.PLAIN, 36));
         int yStart = 350;
         for (int i = 0; i < currentItems.length; i++) {
-            g2d.setColor(i == selected ? Color.WHITE : new Color(150, 150, 160));
+            g.setColor(i == selected ? Color.WHITE : new Color(150, 150, 160));
             String text = currentItems[i];
-            fm = g2d.getFontMetrics();
-            g2d.drawString(text, (getWidth() - fm.stringWidth(text)) / 2, yStart + i * 50);
+            fm = g.getFontMetrics();
+            g.drawString(text, (WINDOW_WIDTH - fm.stringWidth(text)) / 2, yStart + i * 50);
         }
 
-        g2d.setColor(new Color(100, 100, 120));
-        g2d.setFont(new Font("Consolas", Font.PLAIN, 14));
+        g.setColor(new Color(100, 100, 120));
+        g.setFont(new Font("Consolas", Font.PLAIN, 14));
         String hint;
         if (state.equals("single")) {
             hint = "Select game mode";
@@ -191,12 +172,12 @@ public class Menu extends JPanel {
         } else {
             hint = "Use UP/DOWN to navigate, ENTER to select, ESC to exit";
         }
-        fm = g2d.getFontMetrics();
-        g2d.drawString(hint, 20, getHeight() - 40);
+        fm = g.getFontMetrics();
+        g.drawString(hint, 20, WINDOW_HEIGHT - 40);
 
-        g2d.setFont(new Font("Consolas", Font.PLAIN, 14));
-        g2d.setColor(new Color(80, 80, 90));
-        g2d.drawString("v1.6 Beta", getWidth() - 100, getHeight() - 30);
+        g.setFont(new Font("Consolas", Font.PLAIN, 14));
+        g.setColor(new Color(80, 80, 90));
+        g.drawString("v1.7", WINDOW_WIDTH - 100, WINDOW_HEIGHT - 30);
 
         String path = "";
         if (state.equals("single") || state.equals("level")) {
@@ -212,9 +193,9 @@ public class Menu extends JPanel {
             path += " > Local";
         }
         if (!path.isEmpty()) {
-            g2d.setColor(new Color(100, 100, 120));
-            g2d.setFont(new Font("Consolas", Font.PLAIN, 14));
-            g2d.drawString(path, 20, 30);
+            g.setColor(new Color(100, 100, 120));
+            g.setFont(new Font("Consolas", Font.PLAIN, 14));
+            g.drawString(path, 20, 30);
         }
     }
 

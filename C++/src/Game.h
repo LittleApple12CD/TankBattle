@@ -13,6 +13,7 @@
 #include "LevelState.h"
 #include "LevelData.h"
 #include "SaveManager.h"
+#include "SoundManager.h"
 
 class Game {
 public:
@@ -60,6 +61,7 @@ private:
     Tank* player2;
     std::list<Tank*> enemies;
     std::list<EnemyAI*> enemyAIs;
+    SoundManager& soundManager = SoundManager::getInstance();
     
     float enemySpawnTimer;
     int enemyCount;
@@ -70,6 +72,7 @@ private:
     bool pvpMode;
     bool singleMode;
     bool menuMode;
+    bool gameoverPlayed = false;
     
     float powerupTimer = 0.0f;
     float powerupInterval = 10.0f;

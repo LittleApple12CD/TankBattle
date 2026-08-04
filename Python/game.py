@@ -13,6 +13,7 @@ from save_manager import save_progress, load_progress, has_save
 from level_state import LevelState, LevelController
 from boss import Boss
 from menu import Menu
+from sound_manager import SoundManager
 
 class Game:
     def __init__(self, screen=None):
@@ -43,6 +44,9 @@ class Game:
         self.level = 1
         self.show_message = None
         self.waiting_for_enter = False
+        self.sound_manager = SoundManager()
+        self.sound_manager.load_sounds()
+        self._gameover_played = False
         
         self._init_fonts()
         self._init_level()
@@ -550,6 +554,9 @@ class Game:
         if self.pvp_mode:
             # PVP模式：任一玩家死亡则结束
             if (self.player1 and not self.player1.alive) or (self.player2 and not self.player2.alive):
+                if not self._gameover_played:
+                    self.sound_manager.play('gameover')
+                    self._gameover_played = True
                 self.game_over = True
         else:
             # PVE模式：两个玩家都死亡才结束
@@ -559,14 +566,21 @@ class Game:
         if self.single_mode:
             # 单人模式：P1 死亡则游戏结束
             if self.player1 and not self.player1.alive:
+                if not self._gameover_played:
+                    self.sound_manager.play('gameover')
+                    self._gameover_played = True
                 self.game_over = True
         else:
             # 双人模式：两个玩家都死亡才结束
             if self.player1 and not self.player1.alive and self.player2 and not self.player2.alive:
+                if not self._gameover_played:
+                    self.sound_manager.play('gameover')
+                    self._gameover_played = True
                 self.game_over = True
 
     def _on_level_cleared(self):
         """过关"""
+        self.sound_manager.play('victory')
         print(f"Stage {self.level} Clear!")
         self.level_controller.state = LevelState.CLEARED
         self.level_controller.wait_timer = 20.0
@@ -575,23 +589,23 @@ class Game:
 
     def _on_boss_defeated(self):
         """Boss 击败（非第10关）"""
+        self.sound_manager.play('victory')
         print(f"Boss Defeated! Level {self.level}")
         self.show_message = "BOSS DEFEATED!"
         self.waiting_for_enter = True
-        # 确保 level_controller 状态更新
         if self.level_controller:
             self.level_controller.state = LevelState.CLEARED
             self.level_controller.wait_timer = 999.0
 
     def _on_game_victory(self):
         """第10关通关胜利"""
+        self.sound_manager.play('victory')
         print("Game Victory!")
         self.show_message = "GAME VICTORY!"
         self.waiting_for_enter = True
         if self.level_controller:
             self.level_controller.state = LevelState.VICTORY
             self.level_controller.wait_timer = 999.0
-        # 保存进度
         from save_manager import save_progress
         save_progress(10)
 
@@ -617,7 +631,6 @@ class Game:
             self._on_victory_done()
             return
 
-        # 进入下一关
         self.level += 1
         save_progress(self.level)
 
@@ -830,6 +843,7 @@ class Game:
                 enemy.bullets = [b for b in enemy.bullets if b.alive]
 
     def _add_explosion(self, x, y):
+        self.sound_manager.play('explode')
         for _ in range(4):
             self.explosions.append(Explosion(
                 x + random.randint(-15, 15),
@@ -882,6 +896,7 @@ class Game:
                 return
 
     def _apply_powerup(self, tank, powerup):
+        self.sound_manager.play('powerup')
         ptype = powerup.ptype
     
         if ptype == 'H':
@@ -919,10 +934,12 @@ class Game:
     def player1_shoot(self):
         if self.player1 and self.player1.alive:
             self.player1.shoot()
+            self.sound_manager.play('shoot')
 
     def player2_shoot(self):
         if self.player2 and self.player2.alive:
             self.player2.shoot()
+            self.sound_manager.play('shoot')
 
     def draw(self, screen):
         screen.fill(COLORS['bg'])
@@ -1123,7 +1140,3 @@ class Game:
                 x + random.randint(-radius//2, radius//2),
                 y + random.randint(-radius//2, radius//2)
             )
-            
-    def player1_shoot(self):
-        if self.player1 and self.player1.alive:
-            self.player1.shoot()

@@ -16,13 +16,14 @@ public class Game {
     private String showMessage = null;
     private boolean waitingForEnter = false;
     private boolean victoryDone = false;
+    private boolean gameoverPlayed = false;
 
     // ===== 实体 =====
     private List<Wall> walls;
     private List<Explosion> explosions;
     private Tank player1;
     private Tank player2;
-    private List<Tank> enemies;      // 存储 Tank 或 Boss（多态）
+    private List<Tank> enemies;
     private List<EnemyAI> enemyAIs;
     private double enemySpawnTimer;
     private int score;
@@ -37,6 +38,7 @@ public class Game {
     private float powerupInterval = 10.0f;
     private int maxPowerups = 3;
     private Random random;
+    private SoundManager soundManager;
 
     // ===== 字体 =====
     private Font fontNormal;
@@ -56,6 +58,7 @@ public class Game {
         pvpMode = false;
         singleMode = false;
         enemyCount = ENEMY_COUNT;
+        soundManager = SoundManager.getInstance();
         this.gameMode = "endless";
         this.levelController = null;
 
@@ -68,6 +71,7 @@ public class Game {
 
     // ===== 初始化关卡 =====
     public void initLevel() {
+        gameoverPlayed = false;
         gameOver = false;
         paused = false;
         score = 0;
@@ -246,6 +250,7 @@ public class Game {
 
     // ===== 关卡事件 =====
     private void onLevelCleared() {
+        soundManager.play("victory");
         showMessage = "STAGE CLEAR!";
         waitingForEnter = true;
         if (levelController != null) {
@@ -255,6 +260,7 @@ public class Game {
     }
 
     private void onBossDefeated() {
+        soundManager.play("victory");
         showMessage = "BOSS DEFEATED!";
         waitingForEnter = true;
         if (levelController != null) {
@@ -264,6 +270,7 @@ public class Game {
     }
 
     private void onGameVictory() {
+        soundManager.play("victory");
         showMessage = "GAME VICTORY!";
         waitingForEnter = true;
         if (levelController != null) {
@@ -400,13 +407,27 @@ public class Game {
         // 游戏结束检查
         if (pvpMode) {
             if ((player1 != null && !player1.alive) || (player2 != null && !player2.alive)) {
+                if (!gameoverPlayed) {
+                    soundManager.play("gameover");
+                    gameoverPlayed = true;
+                }
                 gameOver = true;
             }
         } else {
             if (singleMode) {
-                if (player1 != null && !player1.alive) gameOver = true;
+                if (player1 != null && !player1.alive) {
+                    if (!gameoverPlayed) {
+                        soundManager.play("gameover");
+                        gameoverPlayed = true;
+                    }
+                    gameOver = true;
+                }
             } else {
                 if (player1 != null && !player1.alive && player2 != null && !player2.alive) {
+                    if (!gameoverPlayed) {
+                        soundManager.play("gameover");
+                        gameoverPlayed = true;
+                    }
                     gameOver = true;
                 }
             }
@@ -575,6 +596,7 @@ public class Game {
 
     // ===== 辅助方法 =====
     private void addExplosion(double x, double y) {
+        soundManager.play("explode");
         for (int i = 0; i < 4; i++) {
             double ox = x + (random.nextDouble() - 0.5) * 30;
             double oy = y + (random.nextDouble() - 0.5) * 30;
@@ -687,6 +709,7 @@ public class Game {
     }
 
     private void applyPowerup(Tank tank, PowerUp powerup) {
+        soundManager.play("powerup");
         char type = powerup.type;
         switch (type) {
             case 'H':
@@ -722,12 +745,14 @@ public class Game {
     public void player1Shoot() {
         if (player1 != null && player1.alive) {
             player1.shoot();
+            soundManager.play("shoot");
         }
     }
 
     public void player2Shoot() {
         if (player2 != null && player2.alive) {
             player2.shoot();
+            soundManager.play("shoot");
         }
     }
 

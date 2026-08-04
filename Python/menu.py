@@ -179,7 +179,7 @@ class Menu:
             self.screen.blit(hint_text, (20, WINDOW_HEIGHT - 40))
 
         # 版本号
-        ver = self.font_sub.render("v1.6", True, (80, 80, 90))
+        ver = self.font_sub.render("v1.7", True, (80, 80, 90))
         self.screen.blit(ver, (WINDOW_WIDTH - 80, WINDOW_HEIGHT - 30))
 
         # 当前路径显示

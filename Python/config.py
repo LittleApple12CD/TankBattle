@@ -33,6 +33,10 @@ COLORS = {
     'pvp_indicator': (255, 100, 100),
 }
 
+# ===== 声音 =====
+SOUND_ENABLED = True
+SOUND_VOLUME = 0.8
+
 # 坦克（使用你的参数）
 TANK_SIZE = 36
 TANK_SPEED = 384

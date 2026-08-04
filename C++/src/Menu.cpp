@@ -175,7 +175,7 @@ void Menu::draw(sf::RenderWindow& window) {
     hint.setPosition(sf::Vector2f(20.0f, WINDOW_HEIGHT - 40.0f));
     window.draw(hint);
 
-    sf::Text ver(font, "v1.6", 14);
+    sf::Text ver(font, "v1.7", 14);
     ver.setFillColor(sf::Color(80, 80, 90));
     ver.setPosition(sf::Vector2f(WINDOW_WIDTH - 80.0f, WINDOW_HEIGHT - 30.0f));
     window.draw(ver);

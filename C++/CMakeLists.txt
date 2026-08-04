@@ -22,6 +22,7 @@ set(SOURCES
     src/LevelData.cpp
     src/LevelState.cpp
     src/SaveManager.cpp
+    src/SoundManager.cpp
     ${RESOURCES}
 )
 
@@ -31,6 +32,7 @@ target_link_libraries(TankBattle
     sfml-graphics
     sfml-window
     sfml-system
+    sfml-audio
 )
 
 target_include_directories(TankBattle PRIVATE src)

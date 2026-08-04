@@ -10,7 +10,7 @@
 Game::Game()
     : player1(nullptr), player2(nullptr), enemySpawnTimer(0),
       score(0), gameOver(false), paused(false), currentMap(0), pvpMode(false),
-      singleMode(false), enemyCount(ENEMY_COUNT),
+      singleMode(true), enemyCount(ENEMY_COUNT),
       rng(std::random_device{}()), dist(0.0f, 1.0f), intDist(0, 4) {
 
     gameMode = "endless";
@@ -19,6 +19,8 @@ Game::Game()
     showMessage = "";
     waitingForEnter = false;
     victoryDone = false;
+
+    soundManager.loadSounds();
 
     initLevel();
 }
@@ -32,6 +34,15 @@ Game::~Game() {
 }
 
 void Game::initLevel() {
+    // ===== 强制修正模式状态 =====
+    if (pvpMode) {
+        singleMode = false;
+    }
+    if (singleMode) {
+        pvpMode = false;
+    }
+    
+    gameoverPlayed = false;
     gameOver = false;
     paused = false;
     score = 0;
@@ -39,15 +50,18 @@ void Game::initLevel() {
     walls.clear();
     explosions.clear();
 
+    // ===== 清理敌人 =====
     for (auto* enemy : enemies) delete enemy;
     enemies.clear();
     for (auto* ai : enemyAIs) delete ai;
     enemyAIs.clear();
 
+    // ===== 清理玩家（重要！） =====
     delete player1;
     player1 = nullptr;
     delete player2;
     player2 = nullptr;
+    
     powerups.clear();
     powerupTimer = 0.0f;
 
@@ -70,10 +84,12 @@ void Game::initLevel() {
     
     MapGenerator::generateMap(currentMap, walls);
 
+    // ===== 创建玩家1（总是存在） =====
     float p1x = GRID_OFFSET_X + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     float p1y = GRID_OFFSET_Y + (GRID_SIZE-3)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
     player1 = new Tank(p1x, p1y, COLOR_PLAYER1, TANK_SPEED, true, 1);
 
+    // ===== 根据模式创建玩家2 =====
     if (!singleMode) {
         float p2x = GRID_OFFSET_X + (GRID_SIZE-2)*CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
         float p2y = GRID_OFFSET_Y + CELL_SIZE + CELL_SIZE/2.0f - TANK_SIZE/2.0f;
@@ -82,6 +98,7 @@ void Game::initLevel() {
         player2 = nullptr;
     }
 
+    // ===== 生成敌人 =====
     if (gameMode == "endless" && !pvpMode) {
         for (int i = 0; i < enemyCount; ++i) {
             spawnEnemy();
@@ -96,12 +113,6 @@ void Game::togglePvpMode() {
 
 void Game::toggleSingleMode() {
     singleMode = !singleMode;
-    if (singleMode) {
-        pvpMode = false;
-        enemyCount = ENEMY_COUNT;
-    } else {
-        enemyCount = ENEMY_COUNT;
-    }
     initLevel();
 }
 
@@ -173,17 +184,30 @@ void Game::update(float dt) {
         }
     }
 
+    // ===== 游戏结束检查 =====
     if (pvpMode) {
         if ((player1 && !player1->isAlive()) || (player2 && !player2->isAlive())) {
+            if (!gameoverPlayed) {
+                soundManager.play("gameover");
+                gameoverPlayed = true;
+            }
             gameOver = true;
         }
     } else {
         if (singleMode) {
             if (player1 && !player1->isAlive()) {
+                if (!gameoverPlayed) {
+                    soundManager.play("gameover");
+                    gameoverPlayed = true;
+                }
                 gameOver = true;
             }
         } else {
             if (player1 && !player1->isAlive() && player2 && !player2->isAlive()) {
+                if (!gameoverPlayed) {
+                    soundManager.play("gameover");
+                    gameoverPlayed = true;
+                }
                 gameOver = true;
             }
         }
@@ -284,6 +308,7 @@ void Game::spawnBoss() {
 // ===== 关卡事件 =====
 
 void Game::onLevelCleared() {
+    soundManager.play("victory");
     showMessage = "STAGE CLEAR!";
     waitingForEnter = true;
     if (levelController != nullptr) {
@@ -294,6 +319,7 @@ void Game::onLevelCleared() {
 }
 
 void Game::onBossDefeated() {
+    soundManager.play("victory");
     showMessage = "BOSS DEFEATED!";
     waitingForEnter = true;
     if (levelController != nullptr) {
@@ -304,6 +330,7 @@ void Game::onBossDefeated() {
 }
 
 void Game::onGameVictory() {
+    soundManager.play("victory");
     showMessage = "GAME VICTORY!";
     waitingForEnter = true;
     if (levelController != nullptr) {
@@ -550,6 +577,7 @@ void Game::handleBulletCollisions() {
 // ===== 辅助方法 =====
 
 void Game::addExplosion(float x, float y) {
+    soundManager.play("explode");
     for (int i=0; i<4; ++i) {
         float ox = x + (dist(rng)-0.5f)*30.0f;
         float oy = y + (dist(rng)-0.5f)*30.0f;
@@ -573,10 +601,12 @@ void Game::movePlayer2(int dx, int dy) {
 
 void Game::player1Shoot() {
     if (player1 && player1->isAlive()) player1->shoot();
+    soundManager.play("shoot");
 }
 
 void Game::player2Shoot() {
     if (player2 && player2->isAlive()) player2->shoot();
+    soundManager.play("shoot");
 }
 
 sf::Font Game::loadFont() {
@@ -861,6 +891,7 @@ void Game::spawnPowerup() {
 }
 
 void Game::applyPowerup(Tank* tank, PowerUp* powerup) {
+    soundManager.play("powerup");
     char type = powerup->getType();
     switch (type) {
         case 'H':

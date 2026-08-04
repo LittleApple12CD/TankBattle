@@ -51,24 +51,28 @@ int main() {
                         game.initLevel();
                         game.setSingleMode(true);
                         game.setPvpMode(false);
+                        game.initLevel();
                     } else if (result == "pvp") {
                         inMenu = false;
                         game.setPlayingMode();
                         game.initLevel();
                         game.setSingleMode(false);
                         game.setPvpMode(true);
+                        game.initLevel();
                     } else if (result == "pve") {
                         inMenu = false;
                         game.setPlayingMode();
                         game.initLevel();
                         game.setSingleMode(false);
                         game.setPvpMode(false);
+                        game.initLevel();
                     } else if (result == "endless_mode") {
                         inMenu = false;
                         game.setPlayingMode();
                         game.initLevel();
                         game.setSingleMode(true);
                         game.setPvpMode(false);
+                        game.initLevel();
                     } else if (result == "load_game") {
                         if (SaveManager::hasSave()) {
                             int level = SaveManager::loadProgress();

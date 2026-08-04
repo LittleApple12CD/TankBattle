@@ -38,6 +38,29 @@ public class Utils {
     // ===== 移动常量 =====
     public static final double MOVE_STEP = 2.0;   // 添加这一行
 
+    // ===== 音效常量 =====
+    /** 声音系统是否启用 */
+    public static boolean SOUND_ENABLED = true;
+    
+    /** 主音量 (0.0 ~ 1.0) */
+    public static float SOUND_VOLUME = 0.8f;
+    
+    /** 是否静音 */
+    public static boolean SOUND_MUTED = false;
+    
+    /** 音效文件路径 */
+    public static final String SOUND_PATH = "/sounds/";
+    
+    /** 音效文件名映射 */
+    public static final String[] SOUND_NAMES = {
+        "shoot", "explode", "powerup", "victory", "gameover"
+    };
+    
+    /** 音效文件名（带扩展名） */
+    public static final String[] SOUND_FILES = {
+        "shoot.wav", "explode.wav", "powerup.wav", "victory.wav", "gameover.wav"
+    };
+
     // ===== 颜色常量 =====
     public static final Color COLOR_BG = new Color(20, 20, 30);
     public static final Color COLOR_GRID = new Color(30, 30, 40);

@@ -116,6 +116,49 @@ copy_all_dlls() {
         print_warning "未复制任何 SFML 核心 DLL！"
     fi
     
+    # ===== 音频编解码器 DLL（SFML Audio 依赖） =====
+    print_step "复制音频编解码器 DLL..."
+    
+    AUDIO_DLLS=(
+        "libFLAC.dll"
+        "libvorbis-0.dll"
+        "libvorbisenc-2.dll"
+        "libogg-0.dll"
+        "libmpg123-0.dll"
+        "libsndfile-1.dll"
+        "libvorbisfile-3.dll"
+    )
+    
+    COPIED_AUDIO=0
+    for dll in "${AUDIO_DLLS[@]}"; do
+        if [ -f "$DLL_SRC/$dll" ]; then
+            if [ ! -f "$PROJECT_DIR/$dll" ]; then
+                cp "$DLL_SRC/$dll" "$PROJECT_DIR/"
+                print_success "已复制 $dll"
+                COPIED_AUDIO=$((COPIED_AUDIO + 1))
+            else
+                print_info "$dll 已存在，跳过"
+            fi
+        else
+            # 尝试其他路径
+            FOUND=0
+            for alt_path in "/mingw64/bin" "/usr/bin" "/bin"; do
+                if [ -f "$alt_path/$dll" ]; then
+                    cp "$alt_path/$dll" "$PROJECT_DIR/"
+                    print_success "已复制 $dll (from $alt_path)"
+                    COPIED_AUDIO=$((COPIED_AUDIO + 1))
+                    FOUND=1
+                    break
+                fi
+            done
+            if [ $FOUND -eq 0 ]; then
+                print_warning "$dll 不存在"
+            fi
+        fi
+    done
+    
+    print_success "共复制 $COPIED_AUDIO 个音频 DLL"
+    
     # 依赖库（SFML 依赖 + MinGW 运行时）
     DEP_DLLS=(
         "libfreetype-6.dll"
@@ -152,7 +195,7 @@ copy_all_dlls() {
     MSYS_DLLS=(
         "msys-2.0.dll"
         "msys-stdc++-6.dll"
-        "msys-gcc_s-seh-1.dll"
+        "msys-gcc_s_seh-1.dll"
     )
     
     for dll in "${MSYS_DLLS[@]}"; do
@@ -185,12 +228,12 @@ compile_mingw() {
     print_step "开始编译..."
     print_info "GCC: $(g++ --version | head -1)"
     
-    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp src/Menu.cpp src/PowerUp.cpp src/Boss.cpp src/LevelData.cpp src/LevelState.cpp src/SaveManager.cpp"
+    SOURCES="src/main.cpp src/Game.cpp src/Tank.cpp src/Bullet.cpp src/Wall.cpp src/Explosion.cpp src/EnemyAI.cpp src/MapGenerator.cpp src/Menu.cpp src/PowerUp.cpp src/Boss.cpp src/LevelData.cpp src/LevelState.cpp src/SaveManager.cpp src/SoundManager.cpp"
     
     g++ -std=c++17 -O2 -mwindows \
         $SOURCES \
         src/icon.res \
-        -lsfml-graphics -lsfml-window -lsfml-system \
+        -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio \
         -o TankBattle.exe
     
     if [ $? -eq 0 ]; then
@@ -290,7 +333,7 @@ run_program() {
 clean_all() {
     print_header "清理"
     print_step "删除可执行文件..."; rm -f TankBattle.exe
-    print_step "删除 DLL..."; rm -f sfml-*.dll libsfml-*.dll libfreetype-*.dll libharfbuzz-*.dll libpng*.dll libbz2-*.dll libbrotli*.dll zlib*.dll libglib-*.dll libgraphite*.dll libintl-*.dll libiconv-*.dll libpcre2-*.dll libwinpthread-*.dll libgcc_s_*.dll libstdc++-*.dll msys-*.dll
+    print_step "删除 DLL..."; rm -f sfml-*.dll libsfml-*.dll libfreetype-*.dll libharfbuzz-*.dll libpng*.dll libbz2-*.dll libbrotli*.dll zlib*.dll libglib-*.dll libgraphite*.dll libintl-*.dll libiconv-*.dll libpcre2-*.dll libwinpthread-*.dll libgcc_s_*.dll libstdc++-*.dll msys-*.dll libFLAC*.dll libvorbis*.dll libogg*.dll libmpg123*.dll libsndfile*.dll
     print_step "删除 build..."; rm -rf build
     print_step "删除备份..."; rm -f src/*.bak
     print_step "删除发布包..."; rm -f TankBattle_Release.zip
@@ -306,10 +349,39 @@ do_zip_package() {
     cp TankBattle.exe "$RELEASE_DIR/"
     cp *.dll "$RELEASE_DIR/" 2>/dev/null || print_info "没有 DLL 需要复制"
     
+    # 复制 assets 目录（如果有）
+    if [ -d "assets" ]; then
+        cp -r assets "$RELEASE_DIR/"
+        print_success "已复制 assets 目录"
+    fi
+    
+    # 创建快捷启动脚本（Windows 批处理）
     cat > "$RELEASE_DIR/run.bat" << 'EOF'
 @echo off
+chcp 65001 >nul
 TankBattle.exe
 pause
+EOF
+    
+    # 创建 README
+    cat > "$RELEASE_DIR/README.txt" << 'EOF'
+坦克大战 - 游戏说明
+
+控制方式：
+P1: 方向键移动 + SPACE射击
+P2: WASD移动 + J射击
+G: 切换 PVP/PVE 模式
+P: 暂停
+R: 重新开始
+ESC: 退出游戏/返回主菜单
+
+游戏模式：
+- 单机模式：玩家1独自挑战
+- PVP模式：玩家1 vs 玩家2
+- PVE模式：合作对抗电脑
+- 关卡模式：挑战10个关卡
+- 无尽模式：无限生存
+
 EOF
     
     print_step "打包成 ZIP..."
@@ -361,6 +433,16 @@ check_dependencies() {
     check_command g++ && print_success "g++: $(g++ --version | head -1)" || print_error "g++ 未安装"
     check_command cmake && print_success "cmake: $(cmake --version | head -1)" || print_info "cmake 可选"
     check_sfml
+    
+    print_step "检查音频 DLL..."
+    for dll in libFLAC-8.dll libvorbis-0.dll libvorbisenc-2.dll libogg-0.dll; do
+        if [ -f "/ucrt64/bin/$dll" ] || [ -f "/mingw64/bin/$dll" ]; then
+            print_success "$dll 存在"
+        else
+            print_warning "$dll 不存在（需要安装）"
+        fi
+    done
+    
     read -p "按回车键继续..."
 }
 

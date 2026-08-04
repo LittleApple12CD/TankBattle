@@ -13,12 +13,12 @@ const int GRID_OFFSET_X = (WINDOW_WIDTH - GRID_SIZE * CELL_SIZE) / 2;
 const int GRID_OFFSET_Y = (WINDOW_HEIGHT - GRID_SIZE * CELL_SIZE) / 2;
 
 const int TANK_SIZE = 36;
-const int TANK_SPEED = 6;
+const int TANK_SPEED = 7;
 const int PLAYER_LIVES = 3;
 const float SHOT_COOLDOWN = 0.5f;
 
 const int BULLET_SIZE = 8;
-const float BULLET_SPEED = 480.0f;
+const float BULLET_SPEED = 520.0f;
 const int MAX_BULLETS = 3;
 
 const int ENEMY_COUNT = 4;
@@ -27,6 +27,22 @@ const float AI_DIRECTION_CHANGE = 2.0f;
 const float AI_SHOOT_CHANCE = 0.4f;
 
 const float MOVE_STEP = 2.0f;
+
+inline bool SOUND_ENABLED = true;
+inline float SOUND_VOLUME = 0.8f;
+inline bool SOUND_MUTED = false;
+
+const std::string SOUND_PATH = "assets/sounds/";
+
+const std::string SOUND_NAMES[] = {
+    "shoot", "explode", "powerup", "victory", "gameover"
+};
+
+const std::string SOUND_FILES[] = {
+    "shoot.wav", "explode.wav", "powerup.wav", "victory.wav", "gameover.wav"
+};
+
+const int SOUND_COUNT = 5;
 
 const sf::Color COLOR_BG(20, 20, 30);
 const sf::Color COLOR_GRID(30, 30, 40);

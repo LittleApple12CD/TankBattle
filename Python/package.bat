@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo   坦克大战 - Python 打包工具 (v1.6)
+echo   坦克大战 - Python 打包工具 (v1.7)
 echo ========================================
 echo.
 
@@ -56,7 +56,7 @@ if exist icon.ico (
 
 REM ===== 关键：指定入口文件和需要包含的数据文件 =====
 set MAIN_FILE=main.py
-set ADD_DATA=--add-data "level_data.py;." --add-data "save_manager.py;." --add-data "level_state.py;." --add-data "boss.py;." --add-data "config.py;." --add-data "entities.py;." --add-data "ai.py;." --add-data "game.py;." --add-data "menu.py;."
+set ADD_DATA=--add-data "level_data.py;." --add-data "save_manager.py;." --add-data "level_state.py;." --add-data "boss.py;." --add-data "config.py;." --add-data "entities.py;." --add-data "ai.py;." --add-data "game.py;." --add-data "menu.py;." --add-data "sound_manager.py;." --add-data "assets;assets"
 
 if "%choice%"=="1" goto single
 if "%choice%"=="2" goto folder
