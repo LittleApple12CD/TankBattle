@@ -7,56 +7,46 @@ import java.awt.*;
  */
 public class Utils {
 
-    // ===== 窗口常量 =====
-    public static final int WINDOW_WIDTH = 1600;
-    public static final int WINDOW_HEIGHT = 900;
+    // ===== 窗口变量 =====
+    public static int WINDOW_WIDTH = 1600;
+    public static int WINDOW_HEIGHT = 900;
     public static final int FPS = 60;
 
-    // ===== 网格常量 =====
-    public static final int GRID_SIZE = 13;
-    public static final int CELL_SIZE = 50;
-    public static final int GRID_OFFSET_X = (WINDOW_WIDTH - GRID_SIZE * CELL_SIZE) / 2;
-    public static final int GRID_OFFSET_Y = (WINDOW_HEIGHT - GRID_SIZE * CELL_SIZE) / 2;
+    // ===== 网格常量（依赖窗口，自动计算） =====
+    // 注意：这些现在需要动态计算，后面会加一个 updateConstants() 方法
+    public static int GRID_SIZE = 13;
+    public static int CELL_SIZE = 50;
+    public static int GRID_OFFSET_X;
+    public static int GRID_OFFSET_Y;
 
     // ===== 坦克常量 =====
-    public static final int TANK_SIZE = 36;
-    public static final int TANK_SPEED = 6;
-    public static final int PLAYER_LIVES = 3;
-    public static final double SHOT_COOLDOWN = 0.5;
+    public static int TANK_SIZE = 36;
+    public static int TANK_SPEED = 6;
+    public static int PLAYER_LIVES = 3;
+    public static double SHOT_COOLDOWN = 0.5;
 
     // ===== 子弹常量 =====
-    public static final int BULLET_SIZE = 8;
-    public static final double BULLET_SPEED = 480.0;
-    public static final int MAX_BULLETS = 3;
+    public static int BULLET_SIZE = 8;
+    public static double BULLET_SPEED = 480.0;
+    public static int MAX_BULLETS = 3;
 
     // ===== 敌人常量 =====
-    public static final int ENEMY_COUNT = 4;
-    public static final double ENEMY_SPAWN_INTERVAL = 4.0;
-    public static final double AI_DIRECTION_CHANGE = 2.0;
-    public static final double AI_SHOOT_CHANCE = 0.4;
+    public static int ENEMY_COUNT = 4;
+    public static double ENEMY_SPAWN_INTERVAL = 4.0;
+    public static double AI_DIRECTION_CHANGE = 2.0;
+    public static double AI_SHOOT_CHANCE = 0.4;
 
     // ===== 移动常量 =====
-    public static final double MOVE_STEP = 2.0;   // 添加这一行
+    public static double MOVE_STEP = 2.0;
 
     // ===== 音效常量 =====
-    /** 声音系统是否启用 */
     public static boolean SOUND_ENABLED = true;
-    
-    /** 主音量 (0.0 ~ 1.0) */
     public static float SOUND_VOLUME = 0.8f;
-    
-    /** 是否静音 */
     public static boolean SOUND_MUTED = false;
-    
-    /** 音效文件路径 */
     public static final String SOUND_PATH = "/sounds/";
-    
-    /** 音效文件名映射 */
     public static final String[] SOUND_NAMES = {
         "shoot", "explode", "powerup", "victory", "gameover"
     };
-    
-    /** 音效文件名（带扩展名） */
     public static final String[] SOUND_FILES = {
         "shoot.wav", "explode.wav", "powerup.wav", "victory.wav", "gameover.wav"
     };
@@ -80,8 +70,19 @@ public class Utils {
     public static final String[] MAP_NAMES = {"空地", "十字", "迷宫", "碉堡", "对称"};
 
     /**
-     * 2D向量类
+     * 更新网格偏移量（窗口大小改变后调用）
      */
+    public static void updateGridOffsets() {
+        GRID_OFFSET_X = (WINDOW_WIDTH - GRID_SIZE * CELL_SIZE) / 2;
+        GRID_OFFSET_Y = (WINDOW_HEIGHT - GRID_SIZE * CELL_SIZE) / 2;
+    }
+
+    // 静态初始化
+    static {
+        updateGridOffsets();
+    }
+
+    // ===== 向量类 =====
     public static class Vec2 {
         public double x, y;
 
@@ -136,5 +137,12 @@ public class Utils {
 
     public static int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(max, val));
+    }
+
+    /**
+     * 应用所有设置（窗口大小改变后需要调用）
+     */
+    public static void refresh() {
+        updateGridOffsets();
     }
 }

@@ -58,7 +58,7 @@ public class Menu {
                 return null;
             } else if (choice.equals("Settings")) {
                 System.out.println("Settings - reserved for future");
-                return null;
+                return "settings";
             } else if (choice.equals("Exit")) {
                 System.exit(0);
             }
@@ -108,6 +108,8 @@ public class Menu {
                 goBack();
                 return null;
             }
+        } else if (choice.equals("Settings")) {
+            return "settings";
         }
 
         return null;

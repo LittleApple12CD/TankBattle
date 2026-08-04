@@ -16,14 +16,20 @@ public class Main implements Runnable, KeyListener {
 
     private Game game;
     private Menu menu;
+    private SettingsMenu settingsMenu;
     private String gameState;
     private Thread gameThread;
     private boolean running;
 
     private boolean p1Left, p1Right, p1Up, p1Down, p1Shoot;
     private boolean p2Left, p2Right, p2Up, p2Down, p2Shoot;
+    private boolean inSettings = false;
 
     public Main() {
+        Settings.load();
+
+        Utils.refresh();
+
         frame = new JFrame("Tank Battle - Java");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
@@ -33,6 +39,7 @@ public class Main implements Runnable, KeyListener {
 
         game = new Game();
         menu = new Menu();
+        settingsMenu = new SettingsMenu();
 
         canvas = new Canvas();
         canvas.setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
@@ -53,6 +60,7 @@ public class Main implements Runnable, KeyListener {
 
         gameThread = new Thread(this);
         gameThread.start();
+        settingsMenu = new SettingsMenu();
 
         frame.setVisible(true);
         canvas.requestFocusInWindow();
@@ -177,20 +185,28 @@ public class Main implements Runnable, KeyListener {
             g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
             if (gameState.equals("menu")) {
-                menu.draw(g);
-            } else {
-                game.draw(g);
-            }
+                    if (inSettings) {
+                        settingsMenu.draw(g);
+                    } else {
+                        menu.draw(g);
+                    }
+                } else {
+                    game.draw(g);
+                }
 
             strategy.show();
         } catch (ClassCastException e) {
             // 如果类型转换失败，使用 Graphics 兼容方式
             Graphics g2 = strategy.getDrawGraphics();
             if (gameState.equals("menu")) {
-                menu.draw((Graphics2D) g2);
-            } else {
-                game.draw((Graphics2D) g2);
-            }
+                    if (inSettings) {
+                        settingsMenu.draw(g);
+                    } else {
+                        menu.draw(g);
+                    }
+                } else {
+                    game.draw(g);
+                }
             strategy.show();
             if (g2 != null) {
                 g2.dispose();
@@ -204,22 +220,47 @@ public class Main implements Runnable, KeyListener {
         }
     }
 
+    private void resizeWindow() {
+        frame.setSize(Utils.WINDOW_WIDTH, Utils.WINDOW_HEIGHT);
+        canvas.setPreferredSize(new Dimension(Utils.WINDOW_WIDTH, Utils.WINDOW_HEIGHT));
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        canvas.requestFocusInWindow();
+    }
+
     // ===== 键盘事件 =====
 
     @Override
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
 
+        // ===== 设置菜单模式 =====
+        if (inSettings) {
+            String result = settingsMenu.handleKeyPress(key);
+            if (result != null) {
+                if (result.equals("back") || result.equals("exit")) {
+                    inSettings = false;
+                    menu.resetState();
+                    Settings.applyToUtils();
+                    resizeWindow();
+                    SoundManager.getInstance().setVolume(Settings.SOUND_VOLUME);
+                    if (Settings.SOUND_MUTED) {
+                        SoundManager.getInstance().toggleMute();
+                    }
+                } else if (result.equals("resize")) {
+                    resizeWindow();
+                    Settings.applyToUtils();
+                }
+            }
+            return;
+        }
+
         if (gameState.equals("menu")) {
             String result = menu.handleKeyPress(key);
             if (result != null) {
                 switch (result) {
-                    case "endless_mode":
-                        startGame("single_player");
-                        break;
-                    case "new_game":
-                        startLevelMode(1);
-                        break;
+                    case "endless_mode": startGame("single_player"); break;
+                    case "new_game": startLevelMode(1); break;
                     case "load_game":
                         if (SaveManager.hasSave()) {
                             int level = SaveManager.loadProgress();
@@ -228,20 +269,15 @@ public class Main implements Runnable, KeyListener {
                             startLevelMode(1);
                         }
                         break;
-                    case "pvp":
-                        startGame("pvp");
-                        break;
-                    case "pve":
-                        startGame("pve");
-                        break;
-                    case "exit":
-                        System.exit(0);
-                        break;
+                    case "pvp": startGame("pvp"); break;
+                    case "pve": startGame("pve"); break;
+                    case "settings": inSettings = true; settingsMenu.resetState(); break;
+                    case "exit": System.exit(0); break;
                 }
             }
             return;
         }
-
+    
         if (key == KeyEvent.VK_ESCAPE) {
             if (gameState.equals("playing")) {
                 gameState = "menu";
@@ -262,23 +298,36 @@ public class Main implements Runnable, KeyListener {
             }
         }
 
-        if (key == KeyEvent.VK_O || key == KeyEvent.VK_G) {
-            return;
+        // ===== P1 控制（使用 Settings 中的按键码） =====
+        // 使用 if-else if 确保每个按键只触发一个动作
+        if (key == Settings.KEY_P1_LEFT) {
+            p1Left = true;
+        } else if (key == Settings.KEY_P1_RIGHT) {
+            p1Right = true;
+        } else if (key == Settings.KEY_P1_UP) {
+            p1Up = true;
+        } else if (key == Settings.KEY_P1_DOWN) {
+            p1Down = true;
+        } else if (key == Settings.KEY_P1_SHOOT) {
+            p1Shoot = true;
         }
-
-        switch (key) {
-            case KeyEvent.VK_LEFT: p1Left = true; break;
-            case KeyEvent.VK_RIGHT: p1Right = true; break;
-            case KeyEvent.VK_UP: p1Up = true; break;
-            case KeyEvent.VK_DOWN: p1Down = true; break;
-            case KeyEvent.VK_SPACE: p1Shoot = true; break;
-            case KeyEvent.VK_A: p2Left = true; break;
-            case KeyEvent.VK_D: p2Right = true; break;
-            case KeyEvent.VK_W: p2Up = true; break;
-            case KeyEvent.VK_S: p2Down = true; break;
-            case KeyEvent.VK_J: p2Shoot = true; break;
-            case KeyEvent.VK_P: game.setPaused(!game.isPaused()); break;
-            case KeyEvent.VK_R: game.initLevel(); break;
+        // P2 控制
+        else if (key == Settings.KEY_P2_LEFT) {
+            p2Left = true;
+        } else if (key == Settings.KEY_P2_RIGHT) {
+            p2Right = true;
+        } else if (key == Settings.KEY_P2_UP) {
+            p2Up = true;
+        } else if (key == Settings.KEY_P2_DOWN) {
+            p2Down = true;
+        } else if (key == Settings.KEY_P2_SHOOT) {
+            p2Shoot = true;
+        }
+        // 其他功能键（保持硬编码）
+        else if (key == KeyEvent.VK_P) {
+            game.setPaused(!game.isPaused());
+        } else if (key == KeyEvent.VK_R) {
+            game.initLevel();
         }
     }
 
@@ -286,17 +335,29 @@ public class Main implements Runnable, KeyListener {
     public void keyReleased(KeyEvent e) {
         int key = e.getKeyCode();
 
-        switch (key) {
-            case KeyEvent.VK_LEFT: p1Left = false; break;
-            case KeyEvent.VK_RIGHT: p1Right = false; break;
-            case KeyEvent.VK_UP: p1Up = false; break;
-            case KeyEvent.VK_DOWN: p1Down = false; break;
-            case KeyEvent.VK_SPACE: p1Shoot = false; break;
-            case KeyEvent.VK_A: p2Left = false; break;
-            case KeyEvent.VK_D: p2Right = false; break;
-            case KeyEvent.VK_W: p2Up = false; break;
-            case KeyEvent.VK_S: p2Down = false; break;
-            case KeyEvent.VK_J: p2Shoot = false; break;
+        // ===== 使用 if-else if 确保每个按键只触发一个动作 =====
+        if (key == Settings.KEY_P1_LEFT) {
+            p1Left = false;
+        } else if (key == Settings.KEY_P1_RIGHT) {
+            p1Right = false;
+        } else if (key == Settings.KEY_P1_UP) {
+            p1Up = false;
+        } else if (key == Settings.KEY_P1_DOWN) {
+            p1Down = false;
+        } else if (key == Settings.KEY_P1_SHOOT) {
+            p1Shoot = false;
+        }
+        // P2 控制
+        else if (key == Settings.KEY_P2_LEFT) {
+            p2Left = false;
+        } else if (key == Settings.KEY_P2_RIGHT) {
+            p2Right = false;
+        } else if (key == Settings.KEY_P2_UP) {
+            p2Up = false;
+        } else if (key == Settings.KEY_P2_DOWN) {
+            p2Down = false;
+        } else if (key == Settings.KEY_P2_SHOOT) {
+            p2Shoot = false;
         }
     }
 

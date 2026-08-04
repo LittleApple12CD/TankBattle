@@ -16,8 +16,8 @@ public class SoundManager {
 
     private static SoundManager instance;
     private Map<String, Clip> sounds;
-    private float volume = SOUND_VOLUME;  // 使用 Utils 中的常量
-    private boolean muted = SOUND_MUTED;   // 使用 Utils 中的常量
+    private float volume = SOUND_VOLUME;
+    private boolean muted = SOUND_MUTED;
     private boolean initialized = false;
 
     private SoundManager() {
@@ -82,7 +82,6 @@ public class SoundManager {
 
         Clip clip = sounds.get(name);
         if (clip != null) {
-            // 关键修复：如果正在播放，停止并重置
             if (clip.isRunning()) {
                 clip.stop();
             }
@@ -93,7 +92,7 @@ public class SoundManager {
 
     public void setVolume(float volume) {
         this.volume = Math.max(0.0f, Math.min(1.0f, volume));
-        SOUND_VOLUME = this.volume;  // 同步到 Utils
+        SOUND_VOLUME = this.volume;
         float vol = muted ? 0 : this.volume;
         for (Clip clip : sounds.values()) {
             setClipVolume(clip, vol);
@@ -102,7 +101,7 @@ public class SoundManager {
 
     public boolean toggleMute() {
         this.muted = !this.muted;
-        SOUND_MUTED = this.muted;  // 同步到 Utils
+        SOUND_MUTED = this.muted;
         float vol = muted ? 0 : volume;
         for (Clip clip : sounds.values()) {
             setClipVolume(clip, vol);
@@ -115,7 +114,7 @@ public class SoundManager {
     }
 
     public void setEnabled(boolean enabled) {
-        SOUND_ENABLED = enabled;  // 同步到 Utils
+        SOUND_ENABLED = enabled;
         if (!enabled) {
             for (Clip clip : sounds.values()) {
                 if (clip != null && clip.isRunning()) {
@@ -143,9 +142,10 @@ public class SoundManager {
             if (gainControl != null) {
                 float min = gainControl.getMinimum();
                 float max = gainControl.getMaximum();
-                if (gain < min) gain = min;
-                if (gain > max) gain = max;
-                gainControl.setValue(gain);
+                float clampedGain = gain;  // 使用新变量
+                if (clampedGain < min) clampedGain = min;
+                if (clampedGain > max) clampedGain = max;
+                gainControl.setValue(clampedGain);
             }
         } catch (IllegalArgumentException e) {
             // 忽略
