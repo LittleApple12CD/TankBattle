@@ -96,12 +96,15 @@ void Tank::draw(sf::RenderWindow& window) {
     // ===== 炮管 =====
     float endX = center.x + dirX * (w / 2.0f + 2.0f);
     float endY = center.y + dirY * (h / 2.0f + 2.0f);
-    sf::Vertex line[2];
-    line[0].position = sf::Vector2f(center.x, center.y);
-    line[0].color = sf::Color::White;
-    line[1].position = sf::Vector2f(endX, endY);
-    line[1].color = sf::Color::White;
-    window.draw(line, 2, sf::PrimitiveType::Lines);
+    float angle = atan2(dirY, dirX) * 180.0f / 3.14159f;
+    float barrelLength = w / 2.0f + 2.0f;
+    float barrelWidth = 4.0f;
+    sf::RectangleShape barrel(sf::Vector2f(barrelLength, barrelWidth));
+    barrel.setOrigin(sf::Vector2f(0, barrelWidth / 2.0f));
+    barrel.setPosition(center);
+    barrel.setRotation(sf::degrees(angle));
+    barrel.setFillColor(sf::Color::White);
+    window.draw(barrel);
 
     // ===== 玩家编号 =====
     if (player) {
