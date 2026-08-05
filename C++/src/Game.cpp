@@ -10,7 +10,7 @@
 Game::Game()
     : player1(nullptr), player2(nullptr), enemySpawnTimer(0),
       score(0), gameOver(false), paused(false), currentMap(0), pvpMode(false),
-      singleMode(true), enemyCount(ENEMY_COUNT),
+      singleMode(true), enemyCount(getEnemyCount()),
       rng(std::random_device{}()), dist(0.0f, 1.0f), intDist(0, 4) {
 
     gameMode = "endless";
@@ -20,8 +20,10 @@ Game::Game()
     waitingForEnter = false;
     victoryDone = false;
 
-    soundManager.loadSounds();
+    powerupInterval = getPowerUpSpawnInterval();
+    maxPowerups = getMaxPowerups();
 
+    soundManager.loadSounds();
     initLevel();
 }
 
@@ -34,7 +36,6 @@ Game::~Game() {
 }
 
 void Game::initLevel() {
-    // ===== 强制修正模式状态 =====
     if (pvpMode) {
         singleMode = false;
     }
@@ -72,8 +73,8 @@ void Game::initLevel() {
         levelController = new LevelState::Controller();
         levelController->startLevel(level);
         
-        currentMap = LevelData::getMapId(level);
-        enemyCount = 0;
+        currentMap = intDist(rng);
+        enemyCount = getEnemyCount();
         showMessage = "";
         waitingForEnter = false;
         victoryDone = false;

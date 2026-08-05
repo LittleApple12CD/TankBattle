@@ -1,11 +1,13 @@
 #include "SoundManager.h"
 #include "Utils.h"
+#include "ConfigManager.h"
 #include <iostream>
 #include <filesystem>
 
 SoundManager::SoundManager() {
-    volume = SOUND_VOLUME;
-    muted = SOUND_MUTED;
+    auto& cfg = ConfigManager::getInstance();
+    volume = cfg.getVolume();
+    muted = cfg.isMuted();
     enabled = SOUND_ENABLED;
 }
 

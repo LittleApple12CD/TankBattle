@@ -62,8 +62,7 @@ std::string Menu::selectCurrent() {
             std::cout << "Mod mode - reserved for future" << std::endl;
             return "";
         } else if (choice == "Settings") {
-            std::cout << "Settings - reserved for future" << std::endl;
-            return "";
+            return "settings";
         } else if (choice == "Exit") {
             return "exit";
         }
@@ -96,6 +95,9 @@ std::string Menu::selectCurrent() {
             return "";
         } else if (choice == "Lan") {
             std::cout << "Lan mode - reserved for future" << std::endl;
+            return "";
+        } else if (choice == "Server") {
+            std::cout << "Server mode - reserved for future" << std::endl;
             return "";
         } else if (choice == "Online") {
             std::cout << "Online mode - reserved for future" << std::endl;
@@ -175,7 +177,7 @@ void Menu::draw(sf::RenderWindow& window) {
     hint.setPosition(sf::Vector2f(20.0f, WINDOW_HEIGHT - 40.0f));
     window.draw(hint);
 
-    sf::Text ver(font, "v1.7", 14);
+    sf::Text ver(font, "v1.8", 14);
     ver.setFillColor(sf::Color(80, 80, 90));
     ver.setPosition(sf::Vector2f(WINDOW_WIDTH - 80.0f, WINDOW_HEIGHT - 30.0f));
     window.draw(ver);

@@ -23,6 +23,8 @@ set(SOURCES
     src/LevelState.cpp
     src/SaveManager.cpp
     src/SoundManager.cpp
+    src/SettingsMenu.cpp
+    src/ConfigManager.cpp
     ${RESOURCES}
 )
 

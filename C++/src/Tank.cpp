@@ -1,10 +1,17 @@
 #include "Tank.h"
+#include "Utils.h"
+#include "ConfigManager.h"
 #include <cmath>
 
+// ===== 构造函数 =====
 Tank::Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int pid)
-    : x(x), y(y), w(TANK_SIZE), h(TANK_SIZE), color(color), speed(speed),
+    : x(x), y(y), w(getTankSize()), h(getTankSize()),
+      color(color), speed(speed),
       player(isPlayer), playerId(pid), dirX(0), dirY(-1),
-      lives(isPlayer ? PLAYER_LIVES : 1), cooldown(0), alive(true), frameCounter(0) {}
+      lives(isPlayer ? getPlayerLives() : 1), cooldown(0), alive(true), frameCounter(0) {}
+
+// ===== 析构函数（使用 default，不需要在 cpp 中定义） =====
+// 删除 Tank::~Tank() 的定义
 
 void Tank::update(float dt) {
     if (cooldown > 0) cooldown -= dt;

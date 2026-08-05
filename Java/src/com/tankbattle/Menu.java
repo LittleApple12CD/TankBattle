@@ -179,7 +179,7 @@ public class Menu {
 
         g.setFont(new Font("Consolas", Font.PLAIN, 14));
         g.setColor(new Color(80, 80, 90));
-        g.drawString("v1.7", WINDOW_WIDTH - 100, WINDOW_HEIGHT - 30);
+        g.drawString("v1.8", WINDOW_WIDTH - 100, WINDOW_HEIGHT - 30);
 
         String path = "";
         if (state.equals("single") || state.equals("level")) {

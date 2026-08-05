@@ -4,7 +4,7 @@
 
 EnemyAI::EnemyAI(Tank* tank, Game* game)
     : tank(tank), game(game), rng(std::random_device{}()), dist(0.0f, 1.0f),
-      dirX(0), dirY(1), dirChangeTimer(AI_DIRECTION_CHANGE + dist(rng)),
+      dirX(0), dirY(1), dirChangeTimer(getAIDirectionChange() + dist(rng)),
       shootTimer(0.5f + dist(rng)) {}
 
 void EnemyAI::update(float dt) {

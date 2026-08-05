@@ -81,7 +81,7 @@ public class Boss extends Tank {
         int cy = (int)center.y;
         g.setColor(new Color(255, 215, 0));
         g.setFont(new Font("Consolas", Font.BOLD, 20));
-        g.drawString("★", cx - 10, cy + 8);
+        g.drawString("B", cx - 10, cy + 8);
 
         // 炮塔
         g.setColor(new Color(255, 215, 0));

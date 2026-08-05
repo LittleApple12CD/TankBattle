@@ -1,9 +1,9 @@
 #include "Bullet.h"
 
 Bullet::Bullet(float x, float y, float dx, float dy, bool isPlayer, int pid, sf::Color col)
-    : x(x - BULLET_SIZE/2.0f), y(y - BULLET_SIZE/2.0f),
-      w(BULLET_SIZE), h(BULLET_SIZE),
-      dx(dx), dy(dy), speed(BULLET_SPEED),
+    : x(x - getBulletSize()/2.0f), y(y - getBulletSize()/2.0f),
+      w(getBulletSize()), h(getBulletSize()),
+      dx(dx), dy(dy), speed(getBulletSpeed()),
       player(isPlayer), playerId(pid), color(col), alive(true), damage(1) {}
 
 void Bullet::update(float dt) {

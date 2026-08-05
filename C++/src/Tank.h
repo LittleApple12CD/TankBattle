@@ -17,7 +17,7 @@ class Tank {
 public:
     Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int playerId);
     virtual ~Tank() = default;
-
+    
     virtual void update(float dt);
     virtual void draw(sf::RenderWindow& window);
     virtual void move(int dx, int dy, std::vector<Wall>& walls);
