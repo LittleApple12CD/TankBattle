@@ -249,6 +249,28 @@ public class Tank {
         int xDraw = (int)(x - (wDraw - w) / 2.0);
         int yDraw = (int)(y - (hDraw - h) / 2.0);
 
+        // ===== 检查是否有贴图 =====
+        String entityId = isPlayer ? "tank_p" + playerId : "tank_enemy";
+        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
+    
+        if (tex != null) {
+            g.drawImage(tex, xDraw, yDraw, wDraw, hDraw, null);
+
+            if (this instanceof Boss) {
+            }
+
+            if (isPlayer) {
+                g.setColor(Color.BLACK);
+                g.setFont(new Font("Consolas", Font.BOLD, 14));
+                String label = String.valueOf(playerId);
+                FontMetrics fm = g.getFontMetrics();
+                int tw = fm.stringWidth(label);
+                g.drawString(label, (int) (x + w / 2 - tw / 2), (int) (y + h / 2 + 5));
+            }
+            return;
+        }
+
+
         // ===== 主体 =====
         g.setColor(color);
         g.fillRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);

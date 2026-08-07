@@ -25,6 +25,15 @@ public class Wall {
 
     public void draw(Graphics2D g) {
         if (!alive) return;
+
+        String entityId = isSteel ? "wall_steel" : "wall_brick";
+        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
+    
+        if (tex != null) {
+            g.drawImage(tex, x, y, w, h, null);
+            return;
+        }
+
         Color color = isSteel ? Utils.COLOR_STEEL : Utils.COLOR_WALL;
         g.setColor(color);
         g.fillRoundRect(x, y, w, h, 4, 4);

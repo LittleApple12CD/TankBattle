@@ -26,7 +26,11 @@ public class Main implements Runnable, KeyListener {
     private boolean inSettings = false;
 
     public Main() {
+        GameConfig.load();
+        GameConfig.applyToUtils();
+
         Settings.load();
+        Settings.applyToUtils();
 
         Utils.refresh();
 
@@ -116,7 +120,7 @@ public class Main implements Runnable, KeyListener {
 
     @Override
     public void run() {
-        double nsPerTick = 1_000_000_000.0 / FPS;
+        double nsPerTick = 1_000_000_000.0 / GameConfig.FPS;
         double delta = 0;
         long lastTime = System.nanoTime();
 
@@ -256,7 +260,7 @@ public class Main implements Runnable, KeyListener {
         }
 
         if (gameState.equals("menu")) {
-            String result = menu.handleKeyPress(key);
+            String result = menu.handleKeyPress(key, game);
             if (result != null) {
                 switch (result) {
                     case "endless_mode": startGame("single_player"); break;

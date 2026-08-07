@@ -62,6 +62,8 @@ public class Boss extends Tank {
 
     @Override
     public void draw(Graphics2D g) {
+        super.draw(g);
+
         if (!alive) return;
 
         int xDraw = (int)x;

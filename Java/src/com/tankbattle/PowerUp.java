@@ -30,6 +30,16 @@ public class PowerUp {
 
     public void draw(Graphics2D g) {
         if (!alive) return;
+
+        // ===== 检查贴图 =====
+        String entityId = "powerup_" + type;
+        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
+    
+        if (tex != null) {
+            g.drawImage(tex, x, y, w, h, null);
+            return;
+        }
+
         Color color;
         switch (type) {
             case 'S': color = COLORS[0]; break;

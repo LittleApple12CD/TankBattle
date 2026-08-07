@@ -105,11 +105,25 @@ public class Bullet {
             }
         }
 
-        // ===== 画子弹 =====
         if (!alive) return;
-        g.setColor(color);
+
+        String entityId;
+        if (isPlayer) {
+            entityId = "bullet_p" + playerId;
+        } else {
+            entityId = "bullet_enemy";
+        }
+        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
+    
         int cx = (int) (x + w / 2.0);
         int cy = (int) (y + h / 2.0);
+    
+        if (tex != null) {
+            g.drawImage(tex, cx - w/2, cy - h/2, w, h, null);
+            return;
+        }
+
+        g.setColor(color);
         g.fillOval(cx - w / 2, cy - h / 2, w, h);
         g.setColor(Color.WHITE);
         g.fillOval(cx - w / 4, cy - h / 4, w / 2, h / 2);

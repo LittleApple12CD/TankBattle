@@ -19,7 +19,14 @@ echo 清理旧文件...
 if exist out rmdir /s /q out
 
 echo 编译源代码...
-javac -d out -encoding UTF-8 src/com/tankbattle/*.java
+echo 依赖库: lib/*.jar
+echo.
+
+javac -d out -encoding UTF-8 -cp "lib/*" ^
+    src/com/tankbattle/*.java ^
+    src/com/tankbattle/mod/*.java ^
+    src/com/tankbattle/resource/*.java ^
+    src/com/tankbattle/script/*.java
 
 if %errorlevel% == 0 (
     echo.
@@ -29,7 +36,7 @@ if %errorlevel% == 0 (
     echo.
     echo 正在运行...
     echo.
-    java -cp out com.tankbattle.Main
+    java -cp "out;lib/*" com.tankbattle.Main
 ) else (
     echo.
     echo ========================================

@@ -20,7 +20,14 @@ if exist out rmdir /s /q out
 if exist TankBattle.jar del TankBattle.jar
 
 echo 编译源代码...
-javac -d out -encoding UTF-8 src/com/tankbattle/*.java
+echo 依赖库: lib/*.jar
+echo.
+
+javac -d out -encoding UTF-8 -cp "lib/*" ^
+    src/com/tankbattle/*.java ^
+    src/com/tankbattle/mod/*.java ^
+    src/com/tankbattle/resource/*.java ^
+    src/com/tankbattle/script/*.java
 
 if %errorlevel% neq 0 (
     echo [错误] 编译失败！
@@ -29,12 +36,15 @@ if %errorlevel% neq 0 (
 )
 
 echo 创建清单文件...
-echo Manifest-Version: 1.0 > MANIFEST.MF
-echo Main-Class: com.tankbattle.Main >> MANIFEST.MF
-echo Class-Path: . >> MANIFEST.MF
+(
+    echo Manifest-Version: 1.0
+    echo Main-Class: com.tankbattle.Main
+    echo Class-Path: . lib/json-20240303.jar lib/luaj-jse-3.0.2.jar
+) > MANIFEST.MF
 
 echo 打包 JAR...
 jar cvfm TankBattle.jar MANIFEST.MF -C out . -C src icon.png
+
 if %errorlevel% neq 0 (
     echo [错误] 打包失败！
     pause
@@ -63,7 +73,7 @@ set /p run_choice="请输入 [1/2]: "
 if "%run_choice%"=="1" (
     echo.
     echo 正在运行...
-    java -jar TankBattle.jar
+    java -cp "TankBattle.jar;lib/*" com.tankbattle.Main
 ) else (
     echo.
     echo 已退出。

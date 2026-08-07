@@ -7,13 +7,18 @@ import java.awt.*;
  */
 public class Utils {
 
+    // ===== 在类加载时应用配置 =====
+    static {
+        // 先加载配置，再初始化其他
+        GameConfig.applyToUtils();
+    }
+
     // ===== 窗口变量 =====
     public static int WINDOW_WIDTH = 1600;
     public static int WINDOW_HEIGHT = 900;
-    public static final int FPS = 60;
+    public static int FPS = 60;
 
-    // ===== 网格常量（依赖窗口，自动计算） =====
-    // 注意：这些现在需要动态计算，后面会加一个 updateConstants() 方法
+    // ===== 网格常量 =====
     public static int GRID_SIZE = 13;
     public static int CELL_SIZE = 50;
     public static int GRID_OFFSET_X;
@@ -39,7 +44,7 @@ public class Utils {
     // ===== 移动常量 =====
     public static double MOVE_STEP = 2.0;
 
-    // ===== 音效常量 =====
+    // ===== 音效常量（这些由 Settings 管理） =====
     public static boolean SOUND_ENABLED = true;
     public static float SOUND_VOLUME = 0.8f;
     public static boolean SOUND_MUTED = false;
@@ -137,6 +142,10 @@ public class Utils {
 
     public static int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(max, val));
+    }
+
+    public static java.awt.image.BufferedImage getEntityTexture(String entityId) {
+        return com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
     }
 
     /**

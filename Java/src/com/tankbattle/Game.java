@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Iterator;
+import com.tankbattle.mod.ModLoader;
+import com.tankbattle.resource.ResourcePackLoader;
+import com.tankbattle.script.ScriptEngine;
 
 import static com.tankbattle.Utils.*;
 
@@ -61,6 +64,10 @@ public class Game {
         soundManager = SoundManager.getInstance();
         this.gameMode = "endless";
         this.levelController = null;
+        ResourcePackLoader.init(this);
+        ScriptEngine.init(this);
+        ModLoader.onGameLoad(this);
+        ModLoader.init();
 
         fontNormal = new Font("Consolas", Font.PLAIN, 18);
         fontBig = new Font("Consolas", Font.BOLD, 36);
@@ -355,6 +362,8 @@ public class Game {
     // ===== 主更新 =====
     public void update(double dt) {
         if (gameOver || paused) return;
+
+        ModLoader.onGameUpdate(dt);
 
         // 玩家更新
         if (player1 != null && player1.alive) player1.update(dt);
