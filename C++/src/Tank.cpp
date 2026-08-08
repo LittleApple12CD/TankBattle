@@ -1,6 +1,8 @@
+// src/Tank.cpp
 #include "Tank.h"
 #include "Utils.h"
 #include "ConfigManager.h"
+#include "resource/TextureManager.h"
 #include <cmath>
 
 // ===== 构造函数 =====
@@ -10,13 +12,10 @@ Tank::Tank(float x, float y, sf::Color color, float speed, bool isPlayer, int pi
       player(isPlayer), playerId(pid), dirX(0), dirY(-1),
       lives(isPlayer ? getPlayerLives() : 1), cooldown(0), alive(true), frameCounter(0) {}
 
-// ===== 析构函数（使用 default，不需要在 cpp 中定义） =====
-// 删除 Tank::~Tank() 的定义
-
+// ===== update =====
 void Tank::update(float dt) {
     if (cooldown > 0) cooldown -= dt;
 
-    // 更新效果
     for (auto it = effects.begin(); it != effects.end(); ) {
         it->second -= dt;
         if (it->second <= 0) {
@@ -26,7 +25,6 @@ void Tank::update(float dt) {
         }
     }
 
-    // 记录行驶痕迹
     frameCounter++;
     if (frameCounter % 3 == 0 && alive) {
         TrailPoint tp;
@@ -36,7 +34,6 @@ void Tank::update(float dt) {
         trailPoints.push_back(tp);
     }
 
-    // 更新痕迹
     for (auto it = trailPoints.begin(); it != trailPoints.end(); ) {
         it->age += dt;
         if (it->age >= 1.0f) {
@@ -46,7 +43,6 @@ void Tank::update(float dt) {
         }
     }
 
-    // 更新子弹
     for (auto it = bullets.begin(); it != bullets.end(); ) {
         it->update(dt);
         if (!it->isAlive()) {
@@ -57,8 +53,9 @@ void Tank::update(float dt) {
     }
 }
 
+// ===== draw =====
 void Tank::draw(sf::RenderWindow& window) {
-    // ===== 痕迹 =====
+    // 痕迹
     for (const auto& tp : trailPoints) {
         float alpha = 60.0f * (1.0f - tp.age / 1.0f);
         if (alpha > 5.0f) {
@@ -71,14 +68,44 @@ void Tank::draw(sf::RenderWindow& window) {
 
     if (!alive) return;
 
-    // ===== Strength 缩放 =====
     float scale = getSizeScale();
     int wDraw = static_cast<int>(w * scale);
     int hDraw = static_cast<int>(h * scale);
     int xDraw = static_cast<int>(x - (wDraw - w) / 2.0f);
     int yDraw = static_cast<int>(y - (hDraw - h) / 2.0f);
 
-    // ===== 主体 =====
+    // 尝试获取贴图
+    std::string entityId;
+    if (player) {
+        entityId = "tank_p" + std::to_string(playerId);
+    } else if (isBoss) {
+        entityId = "tank_boss";
+    } else {
+        entityId = "tank_enemy";
+    }
+
+    auto& tm = TextureManager::getInstance();
+    auto texture = tm.getEntityTexture(entityId);
+
+    if (texture) {
+        sf::Sprite sprite(*texture);
+        sprite.setPosition(sf::Vector2f(xDraw, yDraw));
+        sprite.setScale(sf::Vector2f(
+            wDraw / (float)texture->getSize().x,
+            hDraw / (float)texture->getSize().y
+        ));
+
+        float angle = std::atan2(dirY, dirX) * 180.0f / 3.14159265f;
+        sprite.setRotation(sf::degrees(angle + 90.0f));
+        window.draw(sprite);
+
+        if (isBoss) {
+            drawBossHealthBar(window);
+        }
+        return;
+    }
+
+    // 内置绘制
     float radius = 4.0f;
     float cornerRadius = std::min(radius, std::min(wDraw, hDraw) / 2.0f);
     sf::ConvexShape body = createRoundedRect(xDraw, yDraw, wDraw, hDraw, cornerRadius, color);
@@ -86,14 +113,12 @@ void Tank::draw(sf::RenderWindow& window) {
     body.setOutlineThickness(isProtected() ? 3.0f : 1.0f);
     window.draw(body);
 
-    // ===== 炮塔 =====
     sf::Vector2f center = getCenter();
     sf::CircleShape turret(w / 5.0f);
     turret.setPosition(sf::Vector2f(center.x - w/5.0f, center.y - h/5.0f));
     turret.setFillColor(sf::Color::White);
     window.draw(turret);
 
-    // ===== 炮管 =====
     float endX = center.x + dirX * (w / 2.0f + 2.0f);
     float endY = center.y + dirY * (h / 2.0f + 2.0f);
     float angle = atan2(dirY, dirX) * 180.0f / 3.14159f;
@@ -106,26 +131,50 @@ void Tank::draw(sf::RenderWindow& window) {
     barrel.setFillColor(sf::Color::White);
     window.draw(barrel);
 
-    // ===== 玩家编号 =====
-    if (player) {
-        sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
-            sf::Text text(font, std::to_string(playerId), 14);
-            text.setFillColor(sf::Color::Black);
-            text.setStyle(sf::Text::Bold);
-            sf::FloatRect bounds = text.getLocalBounds();
-            text.setPosition(sf::Vector2f(center.x - bounds.size.x/2.0f,
-                                          center.y - bounds.size.y/2.0f - 2.0f));
-            window.draw(text);
-        }
-    }
-
-    // ===== 子弹 =====
-    for (auto& b : bullets) {
-        b.draw(window);
+    if (isBoss) {
+        drawBossHealthBar(window);
     }
 }
 
+// ===== drawBossHealthBar =====
+void Tank::drawBossHealthBar(sf::RenderWindow& window) {
+    if (!isBoss || maxHp <= 0) return;
+
+    sf::Vector2f center = getCenter();
+    int barWidth = w + 20;
+    int barHeight = 8;
+    int barX = static_cast<int>(center.x - barWidth / 2.0f);
+    int barY = static_cast<int>(y - 16);
+
+    float hpRatio = static_cast<float>(lives) / maxHp;
+
+    sf::RectangleShape barBg(sf::Vector2f(barWidth, barHeight));
+    barBg.setPosition(sf::Vector2f(barX, barY));
+    barBg.setFillColor(sf::Color(40, 40, 50));
+    window.draw(barBg);
+
+    sf::Color hpColor;
+    if (hpRatio > 0.5f) hpColor = sf::Color(0, 200, 0);
+    else if (hpRatio > 0.25f) hpColor = sf::Color(200, 200, 0);
+    else hpColor = sf::Color(200, 50, 50);
+
+    sf::RectangleShape barHp(sf::Vector2f(
+        static_cast<int>(barWidth * hpRatio),
+        barHeight
+    ));
+    barHp.setPosition(sf::Vector2f(barX, barY));
+    barHp.setFillColor(hpColor);
+    window.draw(barHp);
+
+    sf::RectangleShape border(sf::Vector2f(barWidth, barHeight));
+    border.setPosition(sf::Vector2f(barX, barY));
+    border.setFillColor(sf::Color::Transparent);
+    border.setOutlineColor(sf::Color(255, 215, 0));
+    border.setOutlineThickness(1.0f);
+    window.draw(border);
+}
+
+// ===== move =====
 void Tank::move(int dx, int dy, std::vector<Wall>& walls) {
     if (dx == 0 && dy == 0) return;
     
@@ -185,6 +234,7 @@ void Tank::move(int dx, int dy, std::vector<Wall>& walls) {
     }
 }
 
+// ===== shoot =====
 Bullet* Tank::shoot() {
     if (cooldown > 0) return nullptr;
     if (bullets.size() >= MAX_BULLETS) return nullptr;
@@ -212,14 +262,17 @@ Bullet* Tank::shoot() {
     return &bullet;
 }
 
+// ===== getRect =====
 sf::FloatRect Tank::getRect() const {
     return sf::FloatRect(sf::Vector2f(x, y), sf::Vector2f(w, h));
 }
 
+// ===== getCenter =====
 sf::Vector2f Tank::getCenter() const {
     return sf::Vector2f(x + w/2.0f, y + h/2.0f);
 }
 
+// ===== getFirePoint =====
 sf::Vector2f Tank::getFirePoint() const {
     sf::Vector2f center = getCenter();
     float offset = w / 2.0f + 2.0f;

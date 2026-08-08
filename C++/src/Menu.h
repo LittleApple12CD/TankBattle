@@ -1,3 +1,4 @@
+// src/Menu.h
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -19,7 +20,9 @@ private:
         MULTIPLAYER,
         MODE,
         SINGLE,
-        LEVEL
+        LEVEL,
+        MODS,
+        MOD_LIST
     };
 
     std::vector<std::string> mainItems;
@@ -27,13 +30,21 @@ private:
     std::vector<std::string> singleItems;
     std::vector<std::string> levelItems;
     std::vector<std::string> modeItems;
+    std::vector<std::string> modItems;
     std::vector<std::string>* currentItems;
     MenuState state;
     int selected;
+
+    int modListScroll;
+    int modListSelected;
+    bool showingModList;
 
     sf::Font font;
     sf::Font fontTitle;
 
     std::string selectCurrent();
     void goBack();
+    std::string handleModListKey(const sf::Event::KeyPressed& key);
+    int getVisibleModCount() const;
+    void drawModList(sf::RenderWindow& window);
 };

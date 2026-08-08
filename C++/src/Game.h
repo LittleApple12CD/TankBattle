@@ -14,6 +14,9 @@
 #include "LevelData.h"
 #include "SaveManager.h"
 #include "SoundManager.h"
+#include "mod/ModLoader.h"
+#include "resource/ResourcePackLoader.h"
+#include "script/ScriptEngine.h"
 
 class Game {
 public:
@@ -28,6 +31,9 @@ public:
     void movePlayer2(int dx, int dy);
     void player1Shoot();
     void player2Shoot();
+    void initMods();
+    void reloadResourcePacks();
+    void reloadScripts();
     
     // ===== 关卡模式 =====
     void startLevelMode(int level);
@@ -40,6 +46,7 @@ public:
 
     // ===== Getter/Setter =====
     std::vector<Wall>& getWalls() { return walls; }
+    std::shared_ptr<sf::Texture> getEntityTexture(const std::string& entityId);
     Tank* getPlayer1() { return player1; }
     Tank* getPlayer2() { return player2; }
     bool isPaused() const { return paused; }

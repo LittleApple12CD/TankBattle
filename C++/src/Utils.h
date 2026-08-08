@@ -1,8 +1,13 @@
+// src/Utils.h
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <cmath>
+#include <memory>
 #include "ConfigManager.h"
+
+// ✅ 前向声明 TextureManager（避免循环包含）
+class TextureManager;
 
 // ============================================
 // 这些值现在从 config.ini 读取
@@ -63,7 +68,7 @@ inline int getGridOffsetY() {
 // ============================================
 // MOVE_STEP - 保持不变
 // ============================================
-const float MOVE_STEP = 2.0f;  // 确保这行存在且没有被注释
+const float MOVE_STEP = 2.0f;
 
 // ============================================
 // 音效相关
@@ -99,6 +104,9 @@ inline int clampi(int val, int min, int max) {
     return std::max(min, std::min(max, val));
 }
 
+inline std::shared_ptr<sf::Texture> getEntityTexture(const std::string& entityId);
+inline bool hasEntityTexture(const std::string& entityId);
+
 // 圆角矩形
 inline sf::ConvexShape createRoundedRect(float x, float y, float w, float h,
                                           float radius,
@@ -107,7 +115,6 @@ inline sf::ConvexShape createRoundedRect(float x, float y, float w, float h,
                                           float outlineThickness = 1.0f) {
     radius = std::min(radius, std::min(w, h) / 2.0f);
     
-    // 使用 24 个顶点（每个角 6 个点）
     const int seg = 6;
     const int totalPoints = seg * 4;
     sf::ConvexShape shape;
@@ -115,11 +122,8 @@ inline sf::ConvexShape createRoundedRect(float x, float y, float w, float h,
     
     const float pi = 3.14159265358979323846f;
     
-    // 圆心坐标
     float cx[4] = {x + radius, x + w - radius, x + w - radius, x + radius};
     float cy[4] = {y + radius, y + radius, y + h - radius, y + h - radius};
-    
-    // 起始角度：左上=180°, 右上=270°, 右下=0°, 左下=90°
     float startAngles[4] = {pi, pi * 1.5f, 0.0f, pi * 0.5f};
     
     int idx = 0;

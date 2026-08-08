@@ -6,7 +6,7 @@ import java.awt.event.KeyEvent;
 import static com.tankbattle.Utils.*;
 
 /**
- * 设置界面 v1.8
+ * 设置界面 v1.8 - 修复方向键乱码
  */
 public class SettingsMenu {
 
@@ -259,6 +259,75 @@ public class SettingsMenu {
         volumeInput = "";
     }
 
+    // ============================================================
+    // 自定义按键名称（修复方向键乱码）
+    // ============================================================
+    private String getCustomKeyName(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.VK_UP: return "↑";
+            case KeyEvent.VK_DOWN: return "↓";
+            case KeyEvent.VK_LEFT: return "←";
+            case KeyEvent.VK_RIGHT: return "→";
+            case KeyEvent.VK_SPACE: return "Space";
+            case KeyEvent.VK_ENTER: return "Enter";
+            case KeyEvent.VK_ESCAPE: return "Esc";
+            case KeyEvent.VK_TAB: return "Tab";
+            case KeyEvent.VK_BACK_SPACE: return "Backspace";
+            case KeyEvent.VK_CONTROL: return "Ctrl";
+            case KeyEvent.VK_SHIFT: return "Shift";
+            case KeyEvent.VK_ALT: return "Alt";
+            case KeyEvent.VK_WINDOWS: return "Win";
+            case KeyEvent.VK_DELETE: return "Delete";
+            case KeyEvent.VK_HOME: return "Home";
+            case KeyEvent.VK_END: return "End";
+            case KeyEvent.VK_PAGE_UP: return "PageUp";
+            case KeyEvent.VK_PAGE_DOWN: return "PageDown";
+            case KeyEvent.VK_INSERT: return "Insert";
+            case KeyEvent.VK_NUMPAD0: return "Num0";
+            case KeyEvent.VK_NUMPAD1: return "Num1";
+            case KeyEvent.VK_NUMPAD2: return "Num2";
+            case KeyEvent.VK_NUMPAD3: return "Num3";
+            case KeyEvent.VK_NUMPAD4: return "Num4";
+            case KeyEvent.VK_NUMPAD5: return "Num5";
+            case KeyEvent.VK_NUMPAD6: return "Num6";
+            case KeyEvent.VK_NUMPAD7: return "Num7";
+            case KeyEvent.VK_NUMPAD8: return "Num8";
+            case KeyEvent.VK_NUMPAD9: return "Num9";
+            case KeyEvent.VK_MULTIPLY: return "Num*";
+            case KeyEvent.VK_ADD: return "Num+";
+            case KeyEvent.VK_SUBTRACT: return "Num-";
+            case KeyEvent.VK_DIVIDE: return "Num/";
+            case KeyEvent.VK_DECIMAL: return "Num.";
+            case KeyEvent.VK_F1: return "F1";
+            case KeyEvent.VK_F2: return "F2";
+            case KeyEvent.VK_F3: return "F3";
+            case KeyEvent.VK_F4: return "F4";
+            case KeyEvent.VK_F5: return "F5";
+            case KeyEvent.VK_F6: return "F6";
+            case KeyEvent.VK_F7: return "F7";
+            case KeyEvent.VK_F8: return "F8";
+            case KeyEvent.VK_F9: return "F9";
+            case KeyEvent.VK_F10: return "F10";
+            case KeyEvent.VK_F11: return "F11";
+            case KeyEvent.VK_F12: return "F12";
+            default:
+                // 字母和数字
+                if (keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z) {
+                    return String.valueOf((char) keyCode);
+                }
+                if (keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9) {
+                    return String.valueOf((char) keyCode);
+                }
+                // 其他键使用 KeyEvent.getKeyText 作为备选
+                String text = KeyEvent.getKeyText(keyCode);
+                // 过滤掉中文
+                if (text.matches("[\\u4e00-\\u9fa5]+")) {
+                    return "Key_" + keyCode;
+                }
+                return text;
+        }
+    }
+
     // ===== 绘制 =====
     public void draw(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -291,7 +360,7 @@ public class SettingsMenu {
             else g.setFont(fontNormal);
             g.drawString(labels[i], leftCol, y);
 
-            // 值
+            // 使用自定义按键名称
             String value = getValue(i);
             if (selected) g.setFont(fontHighlight);
             else g.setFont(fontNormal);
@@ -338,6 +407,7 @@ public class SettingsMenu {
         g.drawString(hint, (Utils.WINDOW_WIDTH - fm.stringWidth(hint)) / 2, Utils.WINDOW_HEIGHT - 30);
     }
 
+    // 使用自定义按键名称
     private String getValue(int index) {
         switch (index) {
             case ITEM_WINDOW:
@@ -345,16 +415,16 @@ public class SettingsMenu {
             case ITEM_VOLUME:
                 if (state == State.BINDING_VOLUME) return volumeInput + "_";
                 return String.format("%.2f", Settings.SOUND_VOLUME);
-            case ITEM_P1_UP: return KeyEvent.getKeyText(Settings.KEY_P1_UP);
-            case ITEM_P1_DOWN: return KeyEvent.getKeyText(Settings.KEY_P1_DOWN);
-            case ITEM_P1_LEFT: return KeyEvent.getKeyText(Settings.KEY_P1_LEFT);
-            case ITEM_P1_RIGHT: return KeyEvent.getKeyText(Settings.KEY_P1_RIGHT);
-            case ITEM_P1_SHOOT: return KeyEvent.getKeyText(Settings.KEY_P1_SHOOT);
-            case ITEM_P2_UP: return KeyEvent.getKeyText(Settings.KEY_P2_UP);
-            case ITEM_P2_DOWN: return KeyEvent.getKeyText(Settings.KEY_P2_DOWN);
-            case ITEM_P2_LEFT: return KeyEvent.getKeyText(Settings.KEY_P2_LEFT);
-            case ITEM_P2_RIGHT: return KeyEvent.getKeyText(Settings.KEY_P2_RIGHT);
-            case ITEM_P2_SHOOT: return KeyEvent.getKeyText(Settings.KEY_P2_SHOOT);
+            case ITEM_P1_UP: return getCustomKeyName(Settings.KEY_P1_UP);
+            case ITEM_P1_DOWN: return getCustomKeyName(Settings.KEY_P1_DOWN);
+            case ITEM_P1_LEFT: return getCustomKeyName(Settings.KEY_P1_LEFT);
+            case ITEM_P1_RIGHT: return getCustomKeyName(Settings.KEY_P1_RIGHT);
+            case ITEM_P1_SHOOT: return getCustomKeyName(Settings.KEY_P1_SHOOT);
+            case ITEM_P2_UP: return getCustomKeyName(Settings.KEY_P2_UP);
+            case ITEM_P2_DOWN: return getCustomKeyName(Settings.KEY_P2_DOWN);
+            case ITEM_P2_LEFT: return getCustomKeyName(Settings.KEY_P2_LEFT);
+            case ITEM_P2_RIGHT: return getCustomKeyName(Settings.KEY_P2_RIGHT);
+            case ITEM_P2_SHOOT: return getCustomKeyName(Settings.KEY_P2_SHOOT);
             case ITEM_RESET: return "";
             case ITEM_BACK: return "";
             default: return "";

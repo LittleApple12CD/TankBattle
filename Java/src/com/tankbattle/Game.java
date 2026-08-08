@@ -66,8 +66,8 @@ public class Game {
         this.levelController = null;
         ResourcePackLoader.init(this);
         ScriptEngine.init(this);
-        ModLoader.onGameLoad(this);
         ModLoader.init();
+        ModLoader.onGameLoad(this);
 
         fontNormal = new Font("Consolas", Font.PLAIN, 18);
         fontBig = new Font("Consolas", Font.BOLD, 36);

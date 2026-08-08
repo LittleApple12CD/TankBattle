@@ -4,6 +4,10 @@
 #include "LevelData.h"
 #include "SaveManager.h"
 #include "Boss.h"
+#include "mod/ModLoader.h"
+#include "resource/ResourcePackLoader.h"
+#include "resource/TextureManager.h"
+#include "script/ScriptEngine.h"
 #include <cmath>
 #include <algorithm>
 
@@ -23,6 +27,11 @@ Game::Game()
     powerupInterval = getPowerUpSpawnInterval();
     maxPowerups = getMaxPowerups();
 
+    ModLoader::getInstance().init();
+    ResourcePackLoader::getInstance().init(this);
+    ScriptEngine::getInstance().init(this);
+    ModLoader::getInstance().onGameLoad(this);
+
     soundManager.loadSounds();
     initLevel();
 }
@@ -33,6 +42,22 @@ Game::~Game() {
     delete player1;
     delete player2;
     delete levelController;
+}
+
+void Game::initMods() {
+    ModLoader::getInstance().onGameLoad(this);
+}
+
+void Game::reloadResourcePacks() {
+    ResourcePackLoader::getInstance().reloadAll(this);
+}
+
+void Game::reloadScripts() {
+    ScriptEngine::getInstance().reloadAll();
+}
+
+std::shared_ptr<sf::Texture> Game::getEntityTexture(const std::string& entityId) {
+    return TextureManager::getInstance().getEntityTexture(entityId);
 }
 
 void Game::initLevel() {
@@ -142,6 +167,8 @@ void Game::update(float dt) {
     if (gameOver || paused) return;
 
     updatePowerups(dt);
+    ModLoader::getInstance().onGameUpdate(dt);
+    ScriptEngine::getInstance().update(dt);
 
     if (player1 && player1->isAlive()) player1->update(dt);
     if (player2 && player2->isAlive()) player2->update(dt);

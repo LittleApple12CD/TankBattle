@@ -1,10 +1,14 @@
 #include <SFML/Graphics.hpp>
+#include <iostream>
 #include "Game.h"
 #include "Menu.h"
 #include "SettingsMenu.h"
 #include "SaveManager.h"
 #include "ConfigManager.h"
 #include "SoundManager.h"
+#include "mod/ModLoader.h"
+#include "resource/ResourcePackLoader.h"
+#include "script/ScriptEngine.h"
 
 // ===== 辅助函数：从配置获取按键 =====
 sf::Keyboard::Key getKeyFromConfig(int player, const std::string& action) {
@@ -15,6 +19,9 @@ sf::Keyboard::Key getKeyFromConfig(int player, const std::string& action) {
 int main() {
     // ===== 最先初始化 ConfigManager =====
     auto& cfg = ConfigManager::getInstance();
+
+    ModLoader::getInstance().loadGameVersion();
+    std::cout << "TankBattle v" << ModLoader::getInstance().getGameVersion() << std::endl;
     
     // ===== 从配置读取窗口大小 =====
     sf::VideoMode vm(sf::Vector2u(cfg.getWindowWidth(), cfg.getWindowHeight()));
@@ -87,16 +94,12 @@ int main() {
             // ===== 主菜单 =====
             if (inMenu) {
                 if (event.is<sf::Event::KeyPressed>()) {
-                    auto key = event.getIf<sf::Event::KeyPressed>()->code;
-                    
-                    if (key == sf::Keyboard::Key::Escape) {
-                        window.close();
-                        continue;
-                    }
-                    
                     std::string result = menu.handleInput(event);
                     
-                    if (result == "settings") {
+                    if (result == "exit") {
+                        window.close();
+                        continue;
+                    } else if (result == "settings") {
                         inSettings = true;
                         settingsMenu.reset();
                         continue;
@@ -133,9 +136,14 @@ int main() {
                         inMenu = false;
                         game.setPlayingMode();
                         game.startLevelMode(1);
-                    } else if (result == "exit") {
-                        window.close();
+                    } else if (result == "reload_scripts") {
+                        ScriptEngine::getInstance().reloadAll();
+                        std::cout << "Scripts reloaded!" << std::endl;
+                    } else if (result == "reload_resourcepacks") {
+                        game.reloadResourcePacks();
+                        std::cout << "Resource packs reloaded!" << std::endl;
                     }
+                    // "view_mods" 由 Menu 内部处理
                 }
                 continue;
             }

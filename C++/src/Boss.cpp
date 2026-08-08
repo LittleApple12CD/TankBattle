@@ -1,5 +1,6 @@
 #include "Boss.h"
 #include "Utils.h"
+#include "resource/TextureManager.h"
 #include <cmath>
 
 Boss::Boss(float x, float y, int hp, double sizeMult, double speedMult,
@@ -46,8 +47,49 @@ Bullet* Boss::shoot() {
 void Boss::draw(sf::RenderWindow& window) {
     if (!alive) return;
 
-    int xDraw = static_cast<int>(x);
-    int yDraw = static_cast<int>(y);
+    float scale = getSizeScale();
+    int wDraw = static_cast<int>(w * scale);
+    int hDraw = static_cast<int>(h * scale);
+    int xDraw = static_cast<int>(x - (wDraw - w) / 2.0f);
+    int yDraw = static_cast<int>(y - (hDraw - h) / 2.0f);
+
+    // ===== 尝试获取贴图 =====
+    auto& tm = TextureManager::getInstance();
+    auto texture = tm.getEntityTexture("tank_boss");
+
+    if (texture) {
+        // ===== 使用贴图绘制 =====
+        sf::Sprite sprite(*texture);
+        sprite.setPosition(sf::Vector2f(xDraw, yDraw));
+        sprite.setScale(sf::Vector2f(
+            wDraw / (float)texture->getSize().x,
+            hDraw / (float)texture->getSize().y
+        ));
+
+        // 根据方向旋转
+        float angle = std::atan2(dirY, dirX) * 180.0f / 3.14159265f;
+        sprite.setRotation(sf::degrees(angle + 90.0f));
+        window.draw(sprite);
+
+        // ===== Boss 标记（叠加） =====
+        sf::Vector2f center = getCenter();
+        sf::Font font;
+        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
+            font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+            sf::Text text(font, "★", 28);
+            text.setFillColor(sf::Color(255, 215, 0));
+            sf::FloatRect bounds = text.getLocalBounds();
+            text.setPosition(sf::Vector2f(
+                center.x - bounds.size.x / 2.0f,
+                center.y - bounds.size.y / 2.0f - 14.0f
+            ));
+            window.draw(text);
+        }
+
+        // ===== Boss 血条 =====
+        drawBossHealthBar(window);
+        return;
+    }
 
     // ===== Boss 主体（圆角） =====
     float radius = 6.0f;

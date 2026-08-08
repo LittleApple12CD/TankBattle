@@ -4,9 +4,14 @@ project(TankBattle)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 添加资源文件
-set(RESOURCES src/icon.rc)
+find_package(SFML CONFIG REQUIRED)
 
+if(SFML_FOUND)
+    message(STATUS "SFML found")
+    message(STATUS "  Version: ${SFML_VERSION}")
+endif()
+
+# 源文件
 set(SOURCES
     src/main.cpp
     src/Game.cpp
@@ -25,16 +30,41 @@ set(SOURCES
     src/SoundManager.cpp
     src/SettingsMenu.cpp
     src/ConfigManager.cpp
-    ${RESOURCES}
+    src/mod/ModLoader.cpp
+    src/resource/TextureManager.cpp
+    src/resource/ResourcePackLoader.cpp
+    src/resource/MapLoader.cpp
+    src/script/ScriptEngine.cpp
 )
 
+if(WIN32 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/icon.rc)
+    list(APPEND SOURCES src/icon.rc)
+endif()
+
 add_executable(TankBattle WIN32 ${SOURCES})
+
+target_include_directories(TankBattle PRIVATE
+    src
+    src/mod
+    src/resource
+    src/script
+)
 
 target_link_libraries(TankBattle
     sfml-graphics
     sfml-window
     sfml-system
     sfml-audio
+    lua
+    zip
 )
 
-target_include_directories(TankBattle PRIVATE src)
+if(WIN32)
+    target_link_libraries(TankBattle
+        ws2_32
+        ole32
+        winmm
+        gdi32
+        opengl32
+    )
+endif()

@@ -1,4 +1,5 @@
 #include "Bullet.h"
+#include "resource/TextureManager.h"
 
 Bullet::Bullet(float x, float y, float dx, float dy, bool isPlayer, int pid, sf::Color col)
     : x(x - getBulletSize()/2.0f), y(y - getBulletSize()/2.0f),
@@ -51,8 +52,34 @@ void Bullet::draw(sf::RenderWindow& window) {
         }
     }
 
-    // 画子弹
     if (!alive) return;
+
+    // ===== 尝试获取贴图 =====
+    std::string entityId;
+    if (player) {
+        entityId = "bullet_p" + std::to_string(playerId);
+    } else {
+        entityId = "bullet_enemy";
+    }
+
+    auto& tm = TextureManager::getInstance();
+    auto texture = tm.getEntityTexture(entityId);
+
+    int cx = static_cast<int>(x + w / 2.0f);
+    int cy = static_cast<int>(y + h / 2.0f);
+
+    if (texture) {
+        // ===== 使用贴图绘制 =====
+        sf::Sprite sprite(*texture);
+        sprite.setPosition(sf::Vector2f(cx - w/2.0f, cy - h/2.0f));
+        sprite.setScale(sf::Vector2f(
+            w / (float)texture->getSize().x,
+            h / (float)texture->getSize().y
+        ));
+        window.draw(sprite);
+        return;
+    }
+
     sf::CircleShape shape(w / 2.0f);
     shape.setPosition(sf::Vector2f(x, y));
     shape.setFillColor(color);

@@ -1,4 +1,5 @@
 #include "PowerUp.h"
+#include "resource/TextureManager.h"
 
 PowerUp::PowerUp(float x, float y, char type)
     : x(x), y(y), w(24), h(24), type(type), alive(true) {
@@ -20,6 +21,23 @@ sf::Color PowerUp::getColor() const {
 
 void PowerUp::draw(sf::RenderWindow& window) {
     if (!alive) return;
+
+    // ===== 尝试获取贴图 =====
+    std::string entityId = "powerup_" + std::string(1, type);
+    auto& tm = TextureManager::getInstance();
+    auto texture = tm.getEntityTexture(entityId);
+
+    if (texture) {
+        // ===== 使用贴图绘制 =====
+        sf::Sprite sprite(*texture);
+        sprite.setPosition(sf::Vector2f(x, y));
+        sprite.setScale(sf::Vector2f(
+            w / (float)texture->getSize().x,
+            h / (float)texture->getSize().y
+        ));
+        window.draw(sprite);
+        return;
+    }
 
     sf::Color color = getColor();
     sf::RectangleShape rect(sf::Vector2f(w, h));

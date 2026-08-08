@@ -1,3 +1,4 @@
+// src/Tank.h
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <list>
@@ -7,7 +8,6 @@
 #include "Bullet.h"
 #include "Wall.h"
 
-// 痕迹点
 struct TrailPoint {
     float x, y;
     float age;
@@ -26,11 +26,16 @@ public:
     virtual sf::Vector2f getCenter() const;
     virtual sf::Vector2f getFirePoint() const;
     
+    virtual void drawBossHealthBar(sf::RenderWindow& window);
+    
     bool isAlive() const { return alive; }
     void setAlive(bool a) { alive = a; }
     int getLives() const { return lives; }
     void setLives(int l) { lives = l; }
+    int getMaxHp() const { return maxHp; }
+    void setMaxHp(int hp) { maxHp = hp; }
     void setDirection(float dx, float dy) { dirX = dx; dirY = dy; }
+    
     float x, y, w, h;
     sf::Color color;
     float speed;
@@ -43,10 +48,9 @@ public:
     bool isBoss = false;
     
     std::list<Bullet> bullets;
-    std::list<TrailPoint> trailPoints;  // 行驶痕迹
-    int frameCounter;                    // 痕迹帧计数器
+    std::list<TrailPoint> trailPoints;
+    int frameCounter;
 
-    // ===== 道具效果 =====
     std::map<std::string, float> effects;
 
     bool isProtected() const {
@@ -68,4 +72,7 @@ public:
     int getBulletDamage() const {
         return (effects.find("strength") != effects.end()) ? 2 : 1;
     }
+
+protected:
+    int maxHp = 1;
 };
