@@ -1,7 +1,7 @@
 # 坦克大战
 
-- **Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式** 和 **关卡** 模式。本项目用 **Python、Java、C++** 三种语言实现，使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
-- **Tank Battle** is a classic two-player tank game that supports PVE co-op mode, PVP battle mode, as well as single-player mode and level mode. This project is implemented in Python, Java, and C, using the OpenGL graphics API. The C version is based on SFML 3.0, the Java version is based on Swing, and the Python version is based on Pygame.
+- **Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式** 和 **关卡** 模式。本项目用 **Python、Java、C++** 三种语言实现，支持模组、资源包和脚本加载，Java版使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
+- **Tank Battle** is a classic two-player tank game that supports PVE co-op mode, PVP battle mode, as well as single-player mode and level mode.Supports loading mods, resource packs, and scripts. This project is implemented in Python, Java, and C, using the OpenGL graphics API. The C version is based on SFML 3.0, the Java version is based on Swing, and the Python version is based on Pygame.
 
 ## 游戏模式
 
@@ -70,65 +70,109 @@ Python/
 ├── save_manager.py
 └── sound_manager.py
 Java/
-├── assets/sounds/
-├── explode.wav
-├── gameover.wav
-├── powerup.wav
-├── shoot.wav
-├── victory.wav
+├── assets/
+│   └── sounds/
+│       ├── explode.wav
+│       ├── gameover.wav
+│       ├── powerup.wav
+│       ├── shoot.wav
+│       └── victory.wav
 ├── src/
-├── icon.png
-├── src/com/tankbattle/
-│ ├── Main.java
-│ ├── Game.java
-│ ├── Tank.java
-│ ├── Bullet.java
-│ ├── Wall.java
-│ ├── Explosion.java
-│ ├── EnemyAI.java
-│ ├── MapGenerator.java
-│ ├── icon.png
-│ ├── Menu.java
-│ ├── PowerUp.java
-│ ├── LevelData.java
-│ ├── LevelState.java
-│ ├── Boss.java
-│ ├── SaveManager.java
-│ ├── Settings.java
-│ ├── SettingsMenu.java
-│ ├── SoundManager.java
-│ ├──
-│ └── Utils.java
+│   └── com/
+│       └── tankbattle/
+│           ├── Boss.java
+│           ├── Bullet.java
+│           ├── EnemyAI.java
+│           ├── Explosion.java
+│           ├── Game.java
+│           ├── LevelData.java
+│           ├── LevelState.java
+│           ├── Main.java
+│           ├── MapGenerator.java
+│           ├── Menu.java
+│           ├── PowerUp.java
+│           ├── SaveManager.java
+│           ├── Settings.java
+│           ├── SettingsMenu.java
+│           ├── SoundManager.java
+│           ├── Tank.java
+│           ├── Utils.java
+│           ├── Wall.java
+│           ├── mod/
+│           │   ├── IMod.java
+│           │   ├── ModInfo.java
+│           │   └── ModLoader.java
+│           ├── resource/
+│           │   ├── MapLoader.java
+│           │   ├── ResourcePackLoader.java
+│           │   └── TextureManager.java
+│           └── script/
+│               └── ScriptEngine.java
+├── build.bat
 ├── compile.bat
-└── build.bat
+└── icon.png
+
 C++/
-├── assets/sounds/
-├── explode.wav
-├── gameover.wav
-├── powerup.wav
-├── shoot.wav
-├── victory.wav
+├── assets/
+│   └── sounds/
+│       ├── explode.wav
+│       ├── gameover.wav
+│       ├── powerup.wav
+│       ├── shoot.wav
+│       └── victory.wav
 ├── src/
-│ ├── main.cpp
-│ ├── Game.cpp/.h
-│ ├── Tank.cpp/.h
-│ ├── Bullet.cpp/.h
-│ ├── Wall.cpp/.h
-│ ├── Explosion.cpp/.h
-│ ├── EnemyAI.cpp/.h
-│ ├── MapGenerator.cpp/.h
-│ ├── Menu.cpp/.h
-│ ├── PowerUp.cpp/.h
-│ ├── icon.ico
-│ ├── LevelData.cpp/h
-│ ├── LevelState.cpp/h
-│ ├── Boss.cpp/h
-│ ├── SaveManager.cpp/h
-│ ├── SoundManager.cpp/.h
-│ ├── SettingsMenu.cpp/.h
-│ ├── ConfigManager.cpp/.h
-│ └── Utils.h
+│   ├── Boss.cpp
+│   ├── Boss.h
+│   ├── Bullet.cpp
+│   ├── Bullet.h
+│   ├── ConfigManager.cpp
+│   ├── ConfigManager.h
+│   ├── EnemyAI.cpp
+│   ├── EnemyAI.h
+│   ├── Explosion.cpp
+│   ├── Explosion.h
+│   ├── Game.cpp
+│   ├── Game.h
+│   ├── LevelData.cpp
+│   ├── LevelData.h
+│   ├── LevelState.cpp
+│   ├── LevelState.h
+│   ├── main.cpp
+│   ├── MapGenerator.cpp
+│   ├── MapGenerator.h
+│   ├── Menu.cpp
+│   ├── Menu.h
+│   ├── PowerUp.cpp
+│   ├── PowerUp.h
+│   ├── SaveManager.cpp
+│   ├── SaveManager.h
+│   ├── SettingsMenu.cpp
+│   ├── SettingsMenu.h
+│   ├── SoundManager.cpp
+│   ├── SoundManager.h
+│   ├── Tank.cpp
+│   ├── Tank.h
+│   ├── Utils.h
+│   ├── Wall.cpp
+│   ├── Wall.h
+│   ├── icon.rc
+│   ├── icon.ico
+│   ├── mod/
+│   │   ├── IMod.h
+│   │   ├── ModInfo.h
+│   │   └── ModLoader.cpp
+│   │   └── ModLoader.h
+│   ├── resource/
+│   │   ├── MapLoader.cpp
+│   │   ├── MapLoader.h
+│   │   ├── ResourcePackLoader.cpp
+│   │   ├── ResourcePackLoader.h
+│   │   ├── TextureManager.cpp
+│   │   └── TextureManager.h
+│   └── script/
+│       ├── ScriptEngine.cpp
+│       └── ScriptEngine.h
 ├── build.sh
-├── icon.png
-└── CMakeLists.txt
+├── CMakeLists.txt
+└── icon.png
 ```
