@@ -1,8 +1,11 @@
 package com.tankbattle;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import com.tankbattle.resource.TextureManager;
 
 import static com.tankbattle.Utils.*;
 

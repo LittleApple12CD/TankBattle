@@ -4,12 +4,8 @@ project(TankBattle)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(SFML CONFIG REQUIRED)
-
-if(SFML_FOUND)
-    message(STATUS "SFML found")
-    message(STATUS "  Version: ${SFML_VERSION}")
-endif()
+link_directories("/ucrt64/lib")
+include_directories("/ucrt64/include")
 
 # 源文件
 set(SOURCES
@@ -48,6 +44,7 @@ target_include_directories(TankBattle PRIVATE
     src/mod
     src/resource
     src/script
+    /ucrt64/include
 )
 
 target_link_libraries(TankBattle

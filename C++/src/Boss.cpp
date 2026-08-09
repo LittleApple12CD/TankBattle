@@ -58,40 +58,35 @@ void Boss::draw(sf::RenderWindow& window) {
     auto texture = tm.getEntityTexture("tank_boss");
 
     if (texture) {
-        // ===== 使用贴图绘制 =====
+        // ===== 使用贴图绘制并旋转 =====
         sf::Sprite sprite(*texture);
-        sprite.setPosition(sf::Vector2f(xDraw, yDraw));
+        
+        sf::Vector2f center = getCenter();
+        sprite.setPosition(center);
+        
+        sf::Vector2u texSize = texture->getSize();
+        sprite.setOrigin(sf::Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
+        
         sprite.setScale(sf::Vector2f(
-            wDraw / (float)texture->getSize().x,
-            hDraw / (float)texture->getSize().y
+            wDraw / (float)texSize.x,
+            hDraw / (float)texSize.y
         ));
-
-        // 根据方向旋转
+        
         float angle = std::atan2(dirY, dirX) * 180.0f / 3.14159265f;
         sprite.setRotation(sf::degrees(angle + 90.0f));
+        
         window.draw(sprite);
-
-        // ===== Boss 标记（叠加） =====
-        sf::Vector2f center = getCenter();
-        sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-            font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
-            sf::Text text(font, "★", 28);
-            text.setFillColor(sf::Color(255, 215, 0));
-            sf::FloatRect bounds = text.getLocalBounds();
-            text.setPosition(sf::Vector2f(
-                center.x - bounds.size.x / 2.0f,
-                center.y - bounds.size.y / 2.0f - 14.0f
-            ));
-            window.draw(text);
-        }
 
         // ===== Boss 血条 =====
         drawBossHealthBar(window);
         return;
     }
 
-    // ===== Boss 主体（圆角） =====
+    sf::Vector2f center = getCenter();
+    int cx = static_cast<int>(center.x);
+    int cy = static_cast<int>(center.y);
+
+    // ===== Boss 主体 =====
     float radius = 6.0f;
     sf::ConvexShape body = createRoundedRect(
         static_cast<float>(xDraw),
@@ -104,19 +99,6 @@ void Boss::draw(sf::RenderWindow& window) {
         3.0f
     );
     window.draw(body);
-
-    // ===== Boss 标志 - 星星 =====
-    sf::Vector2f center = getCenter();
-    int cx = static_cast<int>(center.x);
-    int cy = static_cast<int>(center.y);
-
-    sf::Font font;
-    if (font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
-        sf::Text star(font, "★", 20);
-        star.setFillColor(sf::Color(255, 215, 0));
-        star.setPosition(sf::Vector2f(cx - 10, cy - 12));
-        window.draw(star);
-    }
 
     // ===== 炮塔 =====
     sf::CircleShape turret(w / 6.0f);

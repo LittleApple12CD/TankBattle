@@ -5,6 +5,47 @@ import java.awt.event.KeyEvent;
 import static com.tankbattle.Utils.*;
 
 public class Menu {
+
+    public void setMainItem(int index, String text) {
+        if (index >= 0 && index < mainItems.length) {
+            mainItems[index] = text;
+        }
+    }
+
+    public String getMainItem(int index) {
+        if (index >= 0 && index < mainItems.length) {
+            return mainItems[index];
+        }
+        return null;
+    }
+
+    public String[] getMainItems() {
+        return mainItems.clone();
+    }
+
+    public void setCurrentItems(String[] items) {
+        this.currentItems = items;
+        this.selected = 0;
+    }
+
+    public String getCurrentState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public int getSelected() {
+        return selected;
+    }
+
+    public void setSelected(int index) {
+        if (index >= 0 && index < currentItems.length) {
+            this.selected = index;
+        }
+    }
+
     private String[] mainItems = {"Single Player", "Multiplayer", "Mods", "Settings", "Exit"};
     private String[] singleItems = {"Endless Mode", "Level Mode", "Back"};
     private String[] levelItems = {"Load Game", "New Game", "Back"};

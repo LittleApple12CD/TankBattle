@@ -1,15 +1,70 @@
 package com.tankbattle;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 
+import com.tankbattle.resource.TextureManager;
+
 import static com.tankbattle.Utils.*;
 
 public class Tank {
+
+    public double getX() { return x; }
+    public double getY() { return y; }
+    public void setX(double x) { this.x = x; }
+    public void setY(double y) { this.y = y; }
+
+    public int getWidth() { return w; }
+    public int getHeight() { return h; }
+
+    public Vec2 getDir() { return dir; }
+    public void setDir(Vec2 dir) { this.dir = dir; }
+
+    public int getLives() { return lives; }
+    public void setLives(int lives) { this.lives = lives; }
+
+    public double getSpeed() { return speed; }
+    public void setSpeed(double speed) { this.speed = speed; }
+
+    public boolean isAlive() { return alive; }
+    public void setAlive(boolean alive) { this.alive = alive; }
+
+    public Color getColor() { return color; }
+    public void setColor(Color color) { this.color = color; }
+
+    public void addEffect(String type, float duration) {
+        effects.put(type, duration);
+    }
+
+    public void removeEffect(String type) {
+        effects.remove(type);
+    }
+
+    public boolean hasEffect(String type) {
+        return effects.containsKey(type);
+    }
+
+    public Map<String, Float> getEffects() {
+        return new HashMap<>(effects);
+    }
+
+    public List<Bullet> getBullets() {
+        return new ArrayList<>(bullets);
+    }
+
+    public int getBulletCount() {
+        return bullets.size();
+    }
+
+    public void setDirection(double dx, double dy) {
+        this.dir = new Vec2(dx, dy);
+    }
+
     public double x, y;
     public int w, h;
     public Color color;
@@ -23,6 +78,7 @@ public class Tank {
     public List<Bullet> bullets;
     public java.util.Map<String, Float> effects = new java.util.HashMap<>();
     public boolean isBoss = false;
+    protected int maxHp = 1;
 
     // ===== 行驶痕迹 =====
     private ArrayList<TrailPoint> trailPoints;
@@ -249,16 +305,30 @@ public class Tank {
         int xDraw = (int)(x - (wDraw - w) / 2.0);
         int yDraw = (int)(y - (hDraw - h) / 2.0);
 
-        // ===== 检查是否有贴图 =====
+        // ===== 尝试获取贴图 =====
         String entityId = isPlayer ? "tank_p" + playerId : "tank_enemy";
-        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
-    
+        BufferedImage tex = TextureManager.getEntityTexture(entityId);
+
         if (tex != null) {
-            g.drawImage(tex, xDraw, yDraw, wDraw, hDraw, null);
+            Graphics2D g2d = (Graphics2D) g.create();
+        
+            // 计算旋转角度 (弧度)
+            double angle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+        
+            // 平移旋转
+            double cx = x + w / 2.0;
+            double cy = y + h / 2.0;
+            g2d.translate(cx, cy);
+            g2d.rotate(angle);
+        
+            // 绘制贴图 (默认朝上，所以需要旋转)
+            int drawX = -wDraw / 2;
+            int drawY = -hDraw / 2;
+            g2d.drawImage(tex, drawX, drawY, wDraw, hDraw, null);
+        
+            g2d.dispose();
 
-            if (this instanceof Boss) {
-            }
-
+            // ===== 玩家编号 (在贴图上叠加) =====
             if (isPlayer) {
                 g.setColor(Color.BLACK);
                 g.setFont(new Font("Consolas", Font.BOLD, 14));
@@ -309,5 +379,28 @@ public class Tank {
             int tw = fm.stringWidth(label);
             g.drawString(label, (int) (x + w / 2 - tw / 2), (int) (y + h / 2 + 5));
         }
+    }
+
+    public void drawBossHealthBar(Graphics2D g) {
+        // Boss 血条（在坦克上方居中）
+        if (!(this instanceof Boss)) return;
+    
+        int barWidth = w + 10;
+        int barHeight = 6;
+        int barX = (int)(x + w/2.0 - barWidth/2.0);
+        int barY = (int)(y - 12);
+        float hpRatio = (float) lives / maxHp;
+
+        g.setColor(new Color(60, 60, 60));
+        g.fillRect(barX, barY, barWidth, barHeight);
+    
+        if (hpRatio > 0.5f) {
+            g.setColor(new Color(0, 200, 0));
+        } else if (hpRatio > 0.25f) {
+            g.setColor(new Color(200, 200, 0));
+        } else {
+            g.setColor(new Color(200, 50, 50));
+        }
+        g.fillRect(barX, barY, (int)(barWidth * hpRatio), barHeight);
     }
 }

@@ -1,11 +1,11 @@
+// src/com/tankbattle/Boss.java
 package com.tankbattle;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import com.tankbattle.resource.TextureManager;
 import static com.tankbattle.Utils.*;
 
-/**
- * Boss 坦克
- */
 public class Boss extends Tank {
 
     private int maxHp;
@@ -26,7 +26,6 @@ public class Boss extends Tank {
         this.bulletSpeedMult = bulletSpeedMult;
         this.isBoss = true;
 
-        // 重新设置尺寸
         this.w = (int)(TANK_SIZE * sizeMult);
         this.h = (int)(TANK_SIZE * sizeMult);
         this.x = x;
@@ -62,10 +61,33 @@ public class Boss extends Tank {
 
     @Override
     public void draw(Graphics2D g) {
-        super.draw(g);
-
         if (!alive) return;
 
+        // ===== 尝试获取贴图 =====
+        BufferedImage tex = TextureManager.getEntityTexture("tank_boss");
+
+        if (tex != null) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            
+            double angle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+            double cx = x + w / 2.0;
+            double cy = y + h / 2.0;
+            g2d.translate(cx, cy);
+            g2d.rotate(angle);
+            
+            int drawX = -w / 2;
+            int drawY = -h / 2;
+            g2d.drawImage(tex, drawX, drawY, w, h, null);
+            
+            g2d.dispose();
+            
+            drawBossHealthBar(g);
+            return;
+        }
+
+        // ===== 无贴图：回退到内置绘制 =====
+        int cx = (int)(x + w / 2.0);
+        int cy = (int)(y + h / 2.0);
         int xDraw = (int)x;
         int yDraw = (int)y;
 
@@ -76,14 +98,6 @@ public class Boss extends Tank {
         g.setStroke(new BasicStroke(3));
         g.drawRoundRect(xDraw, yDraw, w, h, 6, 6);
         g.setStroke(new BasicStroke(1));
-
-        // Boss 标志 - 星星
-        Vec2 center = getCenter();
-        int cx = (int)center.x;
-        int cy = (int)center.y;
-        g.setColor(new Color(255, 215, 0));
-        g.setFont(new Font("Consolas", Font.BOLD, 20));
-        g.drawString("B", cx - 10, cy + 8);
 
         // 炮塔
         g.setColor(new Color(255, 215, 0));
@@ -97,18 +111,23 @@ public class Boss extends Tank {
         g.drawLine(cx, cy, endX, endY);
         g.setStroke(new BasicStroke(1));
 
-        // 血条（居中）
+        drawBossHealthBar(g);
+    }
+
+    @Override
+    public void drawBossHealthBar(Graphics2D g) {
         int barWidth = w + 10;
         int barHeight = 6;
-        int barX = cx - barWidth / 2;
-        int barY = yDraw - 12;
-        double hpRatio = (double) lives / maxHp;
+        int barX = (int)(x + w/2.0 - barWidth/2.0);
+        int barY = (int)(y - 12);
+        float hpRatio = (float) lives / maxHp;
 
         g.setColor(new Color(60, 60, 60));
         g.fillRect(barX, barY, barWidth, barHeight);
-        if (hpRatio > 0.5) {
+        
+        if (hpRatio > 0.5f) {
             g.setColor(new Color(0, 200, 0));
-        } else if (hpRatio > 0.25) {
+        } else if (hpRatio > 0.25f) {
             g.setColor(new Color(200, 200, 0));
         } else {
             g.setColor(new Color(200, 50, 50));

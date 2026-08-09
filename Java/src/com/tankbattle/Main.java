@@ -10,6 +10,7 @@ import static com.tankbattle.Utils.*;
 
 public class Main implements Runnable, KeyListener {
 
+    private static Main instance;
     private JFrame frame;
     private Canvas canvas;
     private BufferStrategy strategy;
@@ -26,6 +27,8 @@ public class Main implements Runnable, KeyListener {
     private boolean inSettings = false;
 
     public Main() {
+        instance = this;
+
         GameConfig.load();
         GameConfig.applyToUtils();
 
@@ -68,6 +71,64 @@ public class Main implements Runnable, KeyListener {
 
         frame.setVisible(true);
         canvas.requestFocusInWindow();
+    }
+
+    public static Main getInstance() {
+        return instance;
+    }
+    
+    public Menu getMenu() {
+        return menu;
+    }
+
+    public SettingsMenu getSettingsMenu() {
+        return settingsMenu;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    public JFrame getFrame() {
+        return frame;
+    }
+
+    public Canvas getCanvas() {
+        return canvas;
+    }
+
+    public String getGameState() {
+        return gameState;
+    }
+
+    public void setGameState(String state) {
+        this.gameState = state;
+    }
+
+    public boolean isInMenu() {
+        return gameState.equals("menu");
+    }
+
+    public boolean isInSettings() {
+        return inSettings;
+    }
+
+    public void exitGame() {
+        running = false;
+        frame.dispose();
+        System.exit(0);
+    }
+
+    public void restartGame() {
+        if (game != null) {
+            game.initLevel();
+        }
+    }
+
+    public void togglePause() {
+        if (game != null) {
+            game.setPaused(!game.isPaused());
+        }
     }
 
     private void loadWindowIcon() {

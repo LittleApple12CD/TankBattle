@@ -1,6 +1,9 @@
 package com.tankbattle;
 
 import java.awt.*;
+
+import com.tankbattle.resource.TextureManager;
+
 import static com.tankbattle.Utils.*;
 
 public class PowerUp {

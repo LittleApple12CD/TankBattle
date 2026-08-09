@@ -13,7 +13,7 @@ public:
     virtual void onUpdate(float dt) {}
 
     virtual std::string getModName() const { return "Unknown Mod"; }
-    virtual std::string getModVersion() const { return "1.9.0"; }
+    virtual std::string getModVersion() const { return "1.0.0"; }
     
     // 添加游戏版本要求
     virtual std::string getGameVersion() const { return "1.9.0"; }

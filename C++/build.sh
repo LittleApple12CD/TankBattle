@@ -733,7 +733,6 @@ show_menu() {
     clear
     echo "${CYAN}========================================${NC}"
     echo "${CYAN}      坦克大战 - C++ 编译工具          ${NC}"
-    echo "${CYAN}      SFML 3.0 + 模组 + Lua           ${NC}"
     echo "${CYAN}========================================${NC}"
     echo ""
     echo "  ${GREEN}1${NC}) MinGW 直接编译 (推荐)"

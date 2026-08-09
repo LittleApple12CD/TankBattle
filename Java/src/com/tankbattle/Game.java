@@ -12,8 +12,65 @@ import com.tankbattle.script.ScriptEngine;
 import static com.tankbattle.Utils.*;
 
 public class Game {
+    public List<Tank> getAllPlayers() {
+        List<Tank> players = new ArrayList<>();
+        if (player1 != null) players.add(player1);
+        if (player2 != null) players.add(player2);
+        return players;
+    }
+
+    public List<Tank> getEnemies() {
+        return new ArrayList<>(enemies);
+    }
+
+    public int getEnemyCount() {
+        return enemies.size();
+    }
+
+    public List<PowerUp> getPowerups() {
+        return new ArrayList<>(powerups);
+    }
+
+    public List<Bullet> getAllBullets() {
+        List<Bullet> all = new ArrayList<>();
+        if (player1 != null) all.addAll(player1.bullets);
+        if (player2 != null) all.addAll(player2.bullets);
+        for (Tank enemy : enemies) {
+            all.addAll(enemy.bullets);
+        }
+        return all;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void addScore(int points) {
+        this.score += points;
+    }
+
+    public int getCurrentLevel() {
+        return level;
+    }
+
+    public void setPowerupInterval(float interval) {
+        this.powerupInterval = interval;
+    }
+
+    public void onPlayerShoot(Tank player) {
+    }
+
+    public void onEnemySpawn(Tank enemy) {
+    }
+
+    public void onEnemyDeath(Tank enemy) {
+    }
+
+    public void onPowerupPickup(PowerUp powerup, Tank tank) {
+    }
+
     // ===== 状态 =====
-    private String gameMode = "endless"; // "endless" 或 "level"
+    private String gameMode = "endless";
     private LevelState.Controller levelController;
     private int level = 1;
     private String showMessage = null;

@@ -74,7 +74,7 @@ void Tank::draw(sf::RenderWindow& window) {
     int xDraw = static_cast<int>(x - (wDraw - w) / 2.0f);
     int yDraw = static_cast<int>(y - (hDraw - h) / 2.0f);
 
-    // 尝试获取贴图
+    // ===== 尝试获取贴图 =====
     std::string entityId;
     if (player) {
         entityId = "tank_p" + std::to_string(playerId);
@@ -88,17 +88,43 @@ void Tank::draw(sf::RenderWindow& window) {
     auto texture = tm.getEntityTexture(entityId);
 
     if (texture) {
+        // ===== 使用贴图绘制并旋转 =====
         sf::Sprite sprite(*texture);
-        sprite.setPosition(sf::Vector2f(xDraw, yDraw));
+        
+        sf::Vector2f center = getCenter();
+        sprite.setPosition(center);
+        
+        sf::Vector2u texSize = texture->getSize();
+        sprite.setOrigin(sf::Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
+        
         sprite.setScale(sf::Vector2f(
-            wDraw / (float)texture->getSize().x,
-            hDraw / (float)texture->getSize().y
+            wDraw / (float)texSize.x,
+            hDraw / (float)texSize.y
         ));
-
+        
         float angle = std::atan2(dirY, dirX) * 180.0f / 3.14159265f;
         sprite.setRotation(sf::degrees(angle + 90.0f));
+        
         window.draw(sprite);
 
+        // ===== 玩家编号（叠加） =====
+        if (player) {
+            sf::Font font;
+            if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
+                font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+                sf::Text text(font, std::to_string(playerId), 16);
+                text.setFillColor(sf::Color::Black);
+                text.setStyle(sf::Text::Bold);
+                sf::FloatRect bounds = text.getLocalBounds();
+                text.setPosition(sf::Vector2f(
+                    center.x - bounds.size.x / 2.0f,
+                    center.y - bounds.size.y / 2.0f - 2.0f
+                ));
+                window.draw(text);
+            }
+        }
+
+        // ===== Boss 血条 =====
         if (isBoss) {
             drawBossHealthBar(window);
         }

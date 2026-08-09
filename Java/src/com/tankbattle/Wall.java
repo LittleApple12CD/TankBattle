@@ -2,6 +2,8 @@ package com.tankbattle;
 
 import java.awt.*;
 
+import com.tankbattle.resource.TextureManager;
+
 /**
  * 墙壁类
  */
