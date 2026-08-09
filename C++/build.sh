@@ -10,13 +10,13 @@
 export PATH="/ucrt64/bin:/mingw64/bin:/usr/bin:$PATH"
 
 # 颜色
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m'
+RED=''
+GREEN=''
+YELLOW=''
+BLUE=''
+CYAN=''
+MAGENTA=''
+NC=''
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
@@ -735,15 +735,15 @@ show_menu() {
     echo "${CYAN}      坦克大战 - C++ 编译工具          ${NC}"
     echo "${CYAN}========================================${NC}"
     echo ""
-    echo "  ${GREEN}1${NC}) MinGW 直接编译 (推荐)"
-    echo "  ${GREEN}2${NC}) CMake 编译"
-    echo "  ${GREEN}3${NC}) 运行程序"
-    echo "  ${GREEN}4${NC}) 打包发布包 (ZIP)"
-    echo "  ${GREEN}5${NC}) 复制 DLL（手动）"
-    echo "  ${GREEN}6${NC}) 检查依赖"
-    echo "  ${GREEN}7${NC}) 安装依赖"
-    echo "  ${GREEN}8${NC}) 清理"
-    echo "  ${GREEN}9${NC}) 退出"
+    echo " (1) MinGW 直接编译 (推荐)"
+    echo " (2) CMake 编译"
+    echo " (3) 运行程序"
+    echo " (4) 打包发布包 (ZIP)"
+    echo " (5) 复制 DLL（手动）"
+    echo " (6) 检查依赖"
+    echo " (7) 安装依赖"
+    echo " (8) 清理"
+    echo " (9) 退出"
     echo ""
     echo "${CYAN}========================================${NC}"
     echo ""

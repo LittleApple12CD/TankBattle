@@ -1,26 +1,61 @@
 @echo off
-chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+:: ========================================
+::   Ì¹¿Ë´óÕ½ - Java ±àÒë¹¤¾ß
+:: ========================================
+
+set "PROJECT_DIR=%~dp0"
+cd /d "%PROJECT_DIR%"
+
+:show_menu
+cls
 echo ========================================
-echo   å¦å…‹å¤§æˆ˜ - æ‰“åŒ… JAR
+echo        Ì¹¿Ë´óÕ½ - Java ±àÒë¹¤¾ß
 echo ========================================
 echo.
+echo  1. ±àÒë²¢ÔËĞĞ
+echo  2. ´ò°ü JAR
+echo  3. ½ö±àÒë
+echo  4. ÇåÀí
+echo  5. ÍË³ö
+echo.
+echo ========================================
+echo.
+set /p "choice=ÇëÑ¡Ôñ [1-5]: "
 
-cd /d "%~dp0"
+if "%choice%"=="1" goto compile_run
+if "%choice%"=="2" goto build_jar
+if "%choice%"=="3" goto compile_only
+if "%choice%"=="4" goto clean_all
+if "%choice%"=="5" goto exit
 
-echo æ£€æŸ¥ Java ç¯å¢ƒ...
+echo [ERROR] ÎŞĞ§Ñ¡Ôñ
+ping -n 2 127.0.0.1 >nul
+goto show_menu
+
+:check_java
 java -version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° Javaï¼
+    echo [ERROR] Java Î´°²×°
     pause
-    exit /b 1
+    goto show_menu
 )
+javac -version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] javac Î´°²×°
+    pause
+    goto show_menu
+)
+exit /b 0
 
-echo æ¸…ç†æ—§æ–‡ä»¶...
+:do_compile
+echo.
+echo [STEP] ÇåÀí¾ÉÎÄ¼ş...
 if exist out rmdir /s /q out
-if exist TankBattle.jar del TankBattle.jar
 
-echo ç¼–è¯‘æºä»£ç ...
-echo ä¾èµ–åº“: lib/*.jar
+echo [STEP] ±àÒëÔ´´úÂë...
+echo [INFO] ÒÀÀµ¿â: lib/*.jar
 echo.
 
 javac -d out -encoding UTF-8 -cp "lib/*" ^
@@ -30,25 +65,58 @@ javac -d out -encoding UTF-8 -cp "lib/*" ^
     src/com/tankbattle/script/*.java
 
 if %errorlevel% neq 0 (
-    echo [é”™è¯¯] ç¼–è¯‘å¤±è´¥ï¼
+    echo [ERROR] ±àÒëÊ§°Ü£¡
     pause
     exit /b 1
 )
 
-echo åˆ›å»ºæ¸…å•æ–‡ä»¶...
+echo [OK] ±àÒëÍê³É£¡
+exit /b 0
+
+:compile_run
+echo.
+echo ========================================
+echo   ±àÒë²¢ÔËĞĞ
+echo ========================================
+echo.
+call :check_java
+call :do_compile
+
+if %errorlevel% equ 0 (
+    echo.
+    echo [STEP] ÕıÔÚÔËĞĞ...
+    echo.
+    java -cp "out;lib/*" com.tankbattle.Main
+)
+pause
+goto show_menu
+
+:build_jar
+echo.
+echo ========================================
+echo   ´ò°ü JAR
+echo ========================================
+echo.
+call :check_java
+call :do_compile
+
+if %errorlevel% neq 0 goto show_menu
+
+echo.
+echo [STEP] ´´½¨Çåµ¥ÎÄ¼ş...
 (
     echo Manifest-Version: 1.0
     echo Main-Class: com.tankbattle.Main
     echo Class-Path: . lib/json-20240303.jar lib/luaj-jse-3.0.2.jar
 ) > MANIFEST.MF
 
-echo æ‰“åŒ… JAR...
+echo [STEP] ´ò°ü JAR...
 jar cvfm TankBattle.jar MANIFEST.MF -C out . -C src icon.png
 
 if %errorlevel% neq 0 (
-    echo [é”™è¯¯] æ‰“åŒ…å¤±è´¥ï¼
+    echo [ERROR] ´ò°üÊ§°Ü£¡
     pause
-    exit /b 1
+    goto show_menu
 )
 
 del MANIFEST.MF
@@ -56,27 +124,59 @@ rmdir /s /q out
 
 echo.
 echo ========================================
-echo   [æˆåŠŸ] æ‰“åŒ…å®Œæˆï¼
-echo   è¾“å‡º: TankBattle.jar
+echo   [OK] ´ò°üÍê³É£¡
+echo   Êä³ö: TankBattle.jar
 echo ========================================
 echo.
-echo   æ–‡ä»¶å¤§å°:
 dir TankBattle.jar | find "TankBattle.jar"
 echo.
+
 echo ========================================
-echo  æ˜¯å¦ç°åœ¨è¿è¡Œ?
-echo   1) æ˜¯ (è¿è¡Œ)
-echo   2) å¦ (é€€å‡º)
+echo  ÊÇ·ñÏÖÔÚÔËĞĞ?
+echo   1) ÊÇ
+echo   2) ·ñ
 echo.
-set /p run_choice="è¯·è¾“å…¥ [1/2]: "
+set /p "run_choice=ÇëÊäÈë [1/2]: "
 
 if "%run_choice%"=="1" (
     echo.
-    echo æ­£åœ¨è¿è¡Œ...
-    java -cp "TankBattle.jar;lib/*" com.tankbattle.Main
-) else (
-    echo.
-    echo å·²é€€å‡ºã€‚
+    java -jar TankBattle.jar
 )
 
 pause
+goto show_menu
+
+:compile_only
+echo.
+echo ========================================
+echo   ½ö±àÒë
+echo ========================================
+echo.
+call :check_java
+call :do_compile
+
+if %errorlevel% equ 0 (
+    echo.
+    echo [OK] ±àÒëÍê³É£¡
+    echo [INFO] Êä³öÄ¿Â¼: out/
+)
+pause
+goto show_menu
+
+:clean_all
+echo.
+echo ========================================
+echo   ÇåÀí
+echo ========================================
+echo.
+if exist out rmdir /s /q out
+if exist TankBattle.jar del TankBattle.jar
+if exist MANIFEST.MF del MANIFEST.MF
+echo [OK] ÇåÀíÍê³É£¡
+pause
+goto show_menu
+
+:exit
+echo.
+echo ÔÙ¼û£¡
+exit /b 0
