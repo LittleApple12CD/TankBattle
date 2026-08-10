@@ -58,6 +58,11 @@ public:
     void setSingleMode(bool b) { singleMode = b; }
     void setPvpMode(bool b) { pvpMode = b; }
     void setEnemyCount(int count) { enemyCount = count; }
+    std::list<Tank*>& getEnemies() { return enemies; }
+    int getScore() const { return score; }
+    void setScore(int s) { score = s; }
+    void addScore(int s) { score += s; }
+    int getCurrentLevel() const { return level; }
 
 private:
     // ===== 成员变量 =====

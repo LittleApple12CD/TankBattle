@@ -35,6 +35,15 @@ public:
     int getMaxHp() const { return maxHp; }
     void setMaxHp(int hp) { maxHp = hp; }
     void setDirection(float dx, float dy) { dirX = dx; dirY = dy; }
+    float getX() const { return x; }
+    float getY() const { return y; }
+    void setPosition(float nx, float ny) { x = nx; y = ny; }
+    float getSpeed() const { return speed; }
+    void setSpeed(float s) { speed = s; }
+
+    void addEffect(const std::string& type, float duration) {
+        effects[type] = duration;
+    }
     
     float x, y, w, h;
     sf::Color color;
@@ -49,6 +58,7 @@ public:
     
     std::list<Bullet> bullets;
     std::list<TrailPoint> trailPoints;
+    std::list<Bullet>& getBullets() { return bullets; }
     int frameCounter;
 
     std::map<std::string, float> effects;
