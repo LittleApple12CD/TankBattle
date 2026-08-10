@@ -415,9 +415,13 @@ int ScriptEngine::lua_tank_getEffect(lua_State* L) {
 // ============================================================
 
 void ScriptEngine::loadAllScripts() {
-    if (!fs::exists(scriptsDir)) return;
-    for (const auto& entry : fs::directory_iterator(scriptsDir)) {
-        if (entry.path().extension() == ".lua") {
+    if (!fs::exists(scriptsDir)) {
+        fs::create_directories(scriptsDir);
+        createExampleScript();
+        return;
+    }
+    for (const auto& entry : fs::recursive_directory_iterator(scriptsDir)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".lua") {
             loadScript(entry.path().string());
         }
     }
