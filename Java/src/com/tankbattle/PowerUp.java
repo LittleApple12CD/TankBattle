@@ -34,29 +34,13 @@ public class PowerUp {
     public void draw(Graphics2D g) {
         if (!alive) return;
 
-        // ===== 检查贴图 =====
         String entityId = "powerup_" + type;
-        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
-    
-        if (tex != null) {
-            g.drawImage(tex, x, y, w, h, null);
+        Renderer renderer = Renderer.getInstance();
+
+        if (renderer.drawPowerUpWithTexture(g, this, entityId)) {
             return;
         }
 
-        Color color;
-        switch (type) {
-            case 'S': color = COLORS[0]; break;
-            case 'P': color = COLORS[1]; break;
-            case 'H': color = COLORS[2]; break;
-            case 'T': color = COLORS[3]; break;
-            default: color = Color.WHITE;
-        }
-        g.setColor(color);
-        g.fillRect(x, y, w, h);
-        g.setColor(Color.WHITE);
-        g.drawRect(x, y, w, h);
-        g.setColor(Color.BLACK);
-        g.setFont(new Font("Consolas", Font.BOLD, 14));
-        g.drawString(String.valueOf(type), x + 7, y + 17);
+        renderer.drawPowerUpBuiltin(g, this);
     }
 }

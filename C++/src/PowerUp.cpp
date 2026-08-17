@@ -1,5 +1,6 @@
 #include "PowerUp.h"
 #include "resource/TextureManager.h"
+#include "renderer/Renderer.h"
 
 PowerUp::PowerUp(float x, float y, char type)
     : x(x), y(y), w(24), h(24), type(type), alive(true) {
@@ -22,38 +23,15 @@ sf::Color PowerUp::getColor() const {
 void PowerUp::draw(sf::RenderWindow& window) {
     if (!alive) return;
 
-    // ===== 尝试获取贴图 =====
     std::string entityId = "powerup_" + std::string(1, type);
-    auto& tm = TextureManager::getInstance();
-    auto texture = tm.getEntityTexture(entityId);
+    Renderer& renderer = Renderer::getInstance();
 
-    if (texture) {
-        // ===== 使用贴图绘制 =====
-        sf::Sprite sprite(*texture);
-        sprite.setPosition(sf::Vector2f(x, y));
-        sprite.setScale(sf::Vector2f(
-            w / (float)texture->getSize().x,
-            h / (float)texture->getSize().y
-        ));
-        window.draw(sprite);
+    // ===== 尝试使用贴图 =====
+    if (renderer.drawPowerUpWithTexture(window, this, entityId)) {
         return;
     }
 
-    sf::Color color = getColor();
-    sf::RectangleShape rect(sf::Vector2f(w, h));
-    rect.setPosition(sf::Vector2f(x, y));
-    rect.setFillColor(color);
-    rect.setOutlineColor(sf::Color::White);
-    rect.setOutlineThickness(1.0f);
-    window.draw(rect);
-
-    sf::Text text(font, std::string(1, type), 16);
-    text.setFillColor(sf::Color::Black);
-    text.setStyle(sf::Text::Bold);
-    sf::FloatRect bounds = text.getLocalBounds();
-    text.setPosition(sf::Vector2f(x + w/2.0f - bounds.size.x/2.0f,
-                                  y + h/2.0f - bounds.size.y/2.0f - 2.0f));
-    window.draw(text);
+    renderer.drawPowerUpBuiltin(window, this);
 }
 
 sf::FloatRect PowerUp::getRect() const {

@@ -2,8 +2,26 @@
 
 # ========================================
 #   坦克大战 - Java 打包 JAR
-#   功能与 build.bat 完全一致
 # ========================================
+
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
+    for java_path in "/d/Program Files/Java/jdk-17/bin" \
+                     "/d/Program Files/Java/jdk-21/bin" \
+                     "/d/Program Files/Java/jdk-22/bin" \
+                     "/d/Program Files/Java/jdk-11/bin" \
+                     "/d/Program Files/Java/jdk1.8.0_*/bin" \
+                     "/c/Program Files/Java/jdk-22/bin" \
+                     "/c/Program Files/Java/jdk-21/bin" \
+                     "/c/Program Files/Java/jdk-17/bin" \
+                     "/c/Program Files/Java/jdk-11/bin" \
+                     "/c/Program Files/Java/jdk1.8.0_*/bin"; do
+        if [ -f "$java_path/java.exe" ]; then
+            export PATH="$java_path:$PATH"
+            echo "[INFO] Found Java at: $java_path"
+            break
+        fi
+    done
+fi
 
 # 颜色
 RED='\033[0;31m'
@@ -24,24 +42,25 @@ print_info() { echo "${YELLOW}ℹ️  $1${NC}"; }
 print_step() { echo "${BLUE}➜ $1${NC}"; }
 
 check_java() {
-    if ! command -v java &> /dev/null; then
-        print_error "Java 未安装或不在 PATH 中"
-        return 1
+    if command -v java &> /dev/null; then
+        print_success "Java: $(java -version 2>&1 | head -1)"
+        return 0
     fi
-    print_success "Java: $(java -version 2>&1 | head -1)"
-    return 0
+    print_error "Java 未安装或不在 PATH 中"
+    print_info "请安装 Java JDK 并确保 java 命令可用"
+    return 1
 }
 
 check_javac() {
-    if ! command -v javac &> /dev/null; then
-        print_error "javac 未安装或不在 PATH 中"
-        return 1
+    if command -v javac &> /dev/null; then
+        print_success "javac: $(javac -version 2>&1)"
+        return 0
     fi
-    print_success "javac: $(javac -version 2>&1)"
-    return 0
+    print_error "javac 未安装或不在 PATH 中"
+    return 1
 }
 
-# ===== 主菜单 =====
+# ===== 打包 JAR =====
 build_jar() {
     print_header "打包 JAR"
 
@@ -101,30 +120,14 @@ EOF
     if [ "$run_choice" == "1" ]; then
         echo ""
         print_step "正在运行..."
-        java -cp "TankBattle.jar:lib/*" com.tankbattle.Main
+        java -jar TankBattle.jar
     else
         echo ""
         print_info "已退出。"
     fi
 }
 
-# ===== 菜单 =====
-show_menu() {
-    clear
-    echo "${CYAN}========================================${NC}"
-    echo "${CYAN}      坦克大战 - Java 打包工具          ${NC}"
-    echo "${CYAN}========================================${NC}"
-    echo ""
-    echo "  ${GREEN}1${NC}) 打包 JAR (build)"
-    echo "  ${GREEN}2${NC}) 编译运行 (compile)"
-    echo "  ${GREEN}3${NC}) 仅编译"
-    echo "  ${GREEN}4${NC}) 清理"
-    echo "  ${GREEN}5${NC}) 退出"
-    echo ""
-    echo "${CYAN}========================================${NC}"
-    echo ""
-}
-
+# ===== 编译运行 =====
 compile_run() {
     print_header "编译运行"
 
@@ -149,13 +152,14 @@ compile_run() {
         echo ""
         print_step "正在运行..."
         echo ""
-        java -cp "out:lib/*" com.tankbattle.Main
+        java -cp "out;lib/*" com.tankbattle.Main
     else
         print_error "编译失败！"
         return 1
     fi
 }
 
+# ===== 仅编译 =====
 compile_only() {
     print_header "仅编译"
 
@@ -182,6 +186,7 @@ compile_only() {
     fi
 }
 
+# ===== 清理 =====
 clean_all() {
     print_header "清理"
     print_step "删除 out/..."
@@ -193,13 +198,30 @@ clean_all() {
     print_success "清理完成！"
 }
 
+# ===== 菜单 =====
+show_menu() {
+    clear
+    echo "${CYAN}========================================${NC}"
+    echo "${CYAN}      坦克大战 - Java 编译工具${NC}"
+    echo "${CYAN}========================================${NC}"
+    echo ""
+    echo "  ${GREEN}1${NC}) 编译并运行"
+    echo "  ${GREEN}2${NC}) 打包 JAR"
+    echo "  ${GREEN}3${NC}) 仅编译"
+    echo "  ${GREEN}4${NC}) 清理"
+    echo "  ${GREEN}5${NC}) 退出"
+    echo ""
+    echo "${CYAN}========================================${NC}"
+    echo ""
+}
+
 # ===== 主循环 =====
 while true; do
     show_menu
     read -p "请选择 [1-5]: " choice
     case $choice in
-        1) build_jar; read -p "按回车键继续..." ;;
-        2) compile_run; read -p "按回车键继续..." ;;
+        1) compile_run; read -p "按回车键继续..." ;;
+        2) build_jar; read -p "按回车键继续..." ;;
         3) compile_only; read -p "按回车键继续..." ;;
         4) clean_all; read -p "按回车键继续..." ;;
         5) echo ""; echo "${GREEN}再见！${NC}"; exit 0 ;;

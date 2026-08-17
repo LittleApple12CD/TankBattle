@@ -63,25 +63,26 @@ public class Boss extends Tank {
     public void draw(Graphics2D g) {
         if (!alive) return;
 
-        // ===== 尝试获取贴图 =====
+        // ===== 尝试使用贴图 =====
         BufferedImage tex = TextureManager.getEntityTexture("tank_boss");
+        Renderer renderer = Renderer.getInstance();
 
         if (tex != null) {
             Graphics2D g2d = (Graphics2D) g.create();
-            
+        
             double angle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
             double cx = x + w / 2.0;
             double cy = y + h / 2.0;
             g2d.translate(cx, cy);
             g2d.rotate(angle);
-            
+        
             int drawX = -w / 2;
             int drawY = -h / 2;
             g2d.drawImage(tex, drawX, drawY, w, h, null);
-            
+        
             g2d.dispose();
-            
-            drawBossHealthBar(g);
+        
+            renderer.drawBossHealthBar(g, this, maxHp);
             return;
         }
 
@@ -111,7 +112,7 @@ public class Boss extends Tank {
         g.drawLine(cx, cy, endX, endY);
         g.setStroke(new BasicStroke(1));
 
-        drawBossHealthBar(g);
+        renderer.drawBossHealthBar(g, this, maxHp);
     }
 
     @Override

@@ -1,5 +1,6 @@
 #include "Bullet.h"
 #include "resource/TextureManager.h"
+#include "renderer/Renderer.h"
 
 Bullet::Bullet(float x, float y, float dx, float dy, bool isPlayer, int pid, sf::Color col)
     : x(x - getBulletSize()/2.0f), y(y - getBulletSize()/2.0f),
@@ -38,7 +39,7 @@ void Bullet::update(float dt) {
 }
 
 void Bullet::draw(sf::RenderWindow& window) {
-    // 画拖尾
+    // ===== 拖尾 =====
     for (const auto& p : trail) {
         float alpha = 1.0f - p.age / p.lifetime;
         int size = static_cast<int>(p.size);
@@ -54,7 +55,6 @@ void Bullet::draw(sf::RenderWindow& window) {
 
     if (!alive) return;
 
-    // ===== 尝试获取贴图 =====
     std::string entityId;
     if (player) {
         entityId = "bullet_p" + std::to_string(playerId);
@@ -62,30 +62,13 @@ void Bullet::draw(sf::RenderWindow& window) {
         entityId = "bullet_enemy";
     }
 
-    auto& tm = TextureManager::getInstance();
-    auto texture = tm.getEntityTexture(entityId);
+    Renderer& renderer = Renderer::getInstance();
 
-    int cx = static_cast<int>(x + w / 2.0f);
-    int cy = static_cast<int>(y + h / 2.0f);
-
-    if (texture) {
-        // ===== 使用贴图绘制 =====
-        sf::Sprite sprite(*texture);
-        sprite.setPosition(sf::Vector2f(cx - w/2.0f, cy - h/2.0f));
-        sprite.setScale(sf::Vector2f(
-            w / (float)texture->getSize().x,
-            h / (float)texture->getSize().y
-        ));
-        window.draw(sprite);
+    if (renderer.drawBulletWithTexture(window, this, entityId)) {
         return;
     }
 
-    sf::CircleShape shape(w / 2.0f);
-    shape.setPosition(sf::Vector2f(x, y));
-    shape.setFillColor(color);
-    shape.setOutlineColor(sf::Color::White);
-    shape.setOutlineThickness(1.0f);
-    window.draw(shape);
+    renderer.drawBulletBuiltin(window, this);
 }
 
 sf::FloatRect Bullet::getRect() const {

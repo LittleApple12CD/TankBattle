@@ -81,12 +81,11 @@ public class Bullet {
     }
 
     public void draw(Graphics2D g) {
-        // ===== 画拖尾（用同步块 + 复制） =====
+        // ===== 拖尾（保持不变） =====
         ArrayList<TrailParticle> trailCopy;
         synchronized (trail) {
             trailCopy = new ArrayList<>(trail);
         }
-    
         for (TrailParticle tp : trailCopy) {
             double alpha = 1.0 - tp.age / tp.lifetime;
             int size = (int) Math.round(tp.size);
@@ -110,25 +109,16 @@ public class Bullet {
 
         if (!alive) return;
 
-        String entityId;
-        if (isPlayer) {
-            entityId = "bullet_p" + playerId;
-        } else {
-            entityId = "bullet_enemy";
-        }
-        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
-    
-        int cx = (int) (x + w / 2.0);
-        int cy = (int) (y + h / 2.0);
-    
-        if (tex != null) {
-            g.drawImage(tex, cx - w/2, cy - h/2, w, h, null);
+        // ===== 获取贴图ID =====
+        String entityId = isPlayer ? "bullet_p" + playerId : "bullet_enemy";
+        Renderer renderer = Renderer.getInstance();
+
+        // ===== 尝试使用贴图 =====
+        if (renderer.drawBulletWithTexture(g, this, entityId)) {
             return;
         }
 
-        g.setColor(color);
-        g.fillOval(cx - w / 2, cy - h / 2, w, h);
-        g.setColor(Color.WHITE);
-        g.fillOval(cx - w / 4, cy - h / 4, w / 2, h / 2);
+        // ===== 无贴图：使用内置绘制 =====
+        renderer.drawBulletBuiltin(g, this);
     }
 }

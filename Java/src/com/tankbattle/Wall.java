@@ -29,17 +29,12 @@ public class Wall {
         if (!alive) return;
 
         String entityId = isSteel ? "wall_steel" : "wall_brick";
-        java.awt.image.BufferedImage tex = com.tankbattle.resource.TextureManager.getEntityTexture(entityId);
-    
-        if (tex != null) {
-            g.drawImage(tex, x, y, w, h, null);
+        Renderer renderer = Renderer.getInstance();
+
+        if (renderer.drawWallWithTexture(g, this, entityId)) {
             return;
         }
 
-        Color color = isSteel ? Utils.COLOR_STEEL : Utils.COLOR_WALL;
-        g.setColor(color);
-        g.fillRoundRect(x, y, w, h, 4, 4);
-        g.setColor(Color.WHITE);
-        g.drawRoundRect(x, y, w, h, 4, 4);
+        renderer.drawWallBuiltin(g, this);
     }
 }

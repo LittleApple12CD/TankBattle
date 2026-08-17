@@ -389,7 +389,8 @@ compile_mingw() {
         src/resource/TextureManager.cpp \
         src/resource/ResourcePackLoader.cpp \
         src/resource/MapLoader.cpp \
-        src/script/ScriptEngine.cpp"
+        src/script/ScriptEngine.cpp \
+        src/renderer/Renderer.cpp"
 
     # 检查是否有 icon.res
     RESOURCES=""
@@ -424,17 +425,28 @@ compile_cmake() {
     print_header "CMake 编译"
 
     CMAKE_EXE=""
-    command -v cmake &> /dev/null && CMAKE_EXE="cmake"
-    [ -f "/ucrt64/bin/cmake" ] && CMAKE_EXE="/ucrt64/bin/cmake"
-    [ -f "/mingw64/bin/cmake" ] && CMAKE_EXE="/mingw64/bin/cmake"
+    
+    # ✅ 优先使用 Windows CMake
+    if [ -f "/d/Program Files/CMake/bin/cmake.exe" ]; then
+        CMAKE_EXE="/d/Program Files/CMake/bin/cmake.exe"
+    elif [ -f "/c/Program Files/CMake/bin/cmake.exe" ]; then
+        CMAKE_EXE="/c/Program Files/CMake/bin/cmake.exe"
+    elif command -v cmake &> /dev/null; then
+        CMAKE_EXE="cmake"
+    elif [ -f "/ucrt64/bin/cmake" ]; then
+        CMAKE_EXE="/ucrt64/bin/cmake"
+    elif [ -f "/mingw64/bin/cmake" ]; then
+        CMAKE_EXE="/mingw64/bin/cmake"
+    fi
 
     if [ -z "$CMAKE_EXE" ]; then
         print_error "cmake 未找到！"
+        print_info "请安装 Windows CMake: https://cmake.org/download/"
         return 1
     fi
 
     print_info "CMake: $CMAKE_EXE"
-    $CMAKE_EXE --version | head -1
+    "$CMAKE_EXE" --version | head -1
 
     MAKE_EXE=""
     command -v mingw32-make &> /dev/null && MAKE_EXE="mingw32-make"
@@ -452,7 +464,7 @@ compile_cmake() {
     mkdir build && cd build
 
     print_step "运行 CMake..."
-    $CMAKE_EXE .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+    "$CMAKE_EXE" .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
     if [ $? -ne 0 ]; then
         print_error "CMake 配置失败！"
@@ -461,7 +473,7 @@ compile_cmake() {
     fi
 
     print_step "开始编译..."
-    $MAKE_EXE -j$(nproc 2>/dev/null || echo 4)
+    "$MAKE_EXE" -j$(nproc 2>/dev/null || echo 4)
 
     if [ $? -eq 0 ]; then
         cd "$PROJECT_DIR"

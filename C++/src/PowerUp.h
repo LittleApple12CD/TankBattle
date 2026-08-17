@@ -11,6 +11,11 @@ public:
     void setAlive(bool a) { alive = a; }
     char getType() const { return type; }
 
+    float getX() const { return x; }
+    float getY() const { return y; }
+    float getW() const { return w; }
+    float getH() const { return h; }
+
 private:
     float x, y, w, h;
     char type;  // 'S', 'P', 'H', 'T'

@@ -31,6 +31,7 @@ set(SOURCES
     src/resource/ResourcePackLoader.cpp
     src/resource/MapLoader.cpp
     src/script/ScriptEngine.cpp
+    src/renderer/Renderer.cpp
 )
 
 if(WIN32 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/icon.rc)

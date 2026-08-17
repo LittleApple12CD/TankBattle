@@ -305,30 +305,13 @@ public class Tank {
         int xDraw = (int)(x - (wDraw - w) / 2.0);
         int yDraw = (int)(y - (hDraw - h) / 2.0);
 
-        // ===== 尝试获取贴图 =====
+        // ===== 获取贴图ID =====
         String entityId = isPlayer ? "tank_p" + playerId : "tank_enemy";
-        BufferedImage tex = TextureManager.getEntityTexture(entityId);
+        Renderer renderer = Renderer.getInstance();
 
-        if (tex != null) {
-            Graphics2D g2d = (Graphics2D) g.create();
-        
-            // 计算旋转角度 (弧度)
-            double angle = Math.atan2(dir.y, dir.x) + Math.PI / 2;
-        
-            // 平移旋转
-            double cx = x + w / 2.0;
-            double cy = y + h / 2.0;
-            g2d.translate(cx, cy);
-            g2d.rotate(angle);
-        
-            // 绘制贴图 (默认朝上，所以需要旋转)
-            int drawX = -wDraw / 2;
-            int drawY = -hDraw / 2;
-            g2d.drawImage(tex, drawX, drawY, wDraw, hDraw, null);
-        
-            g2d.dispose();
-
-            // ===== 玩家编号 (在贴图上叠加) =====
+        // ===== 尝试使用贴图 =====
+        if (renderer.drawTankWithTexture(g, this, entityId, wDraw, hDraw, xDraw, yDraw)) {
+            // 玩家编号（叠加）
             if (isPlayer) {
                 g.setColor(Color.BLACK);
                 g.setFont(new Font("Consolas", Font.BOLD, 14));
@@ -340,37 +323,10 @@ public class Tank {
             return;
         }
 
+        // ===== 无贴图：使用内置绘制 =====
+        renderer.drawTankBuiltin(g, this, color, wDraw, hDraw, xDraw, yDraw);
 
-        // ===== 主体 =====
-        g.setColor(color);
-        g.fillRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
-
-        // ===== 边框 =====
-        if (isProtected()) {
-            g.setColor(Color.WHITE);
-            g.setStroke(new BasicStroke(3));
-            g.drawRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
-            g.setStroke(new BasicStroke(1));
-        } else {
-            g.setColor(Color.WHITE);
-            g.drawRoundRect(xDraw, yDraw, wDraw, hDraw, 6, 6);
-        }
-
-        // ===== 炮塔 =====
-        Utils.Vec2 center = getCenter();
-        int cx = (int) center.x;
-        int cy = (int) center.y;
-        g.setColor(Color.WHITE);
-        g.fillOval(cx - w / 6, cy - w / 6, w / 3, h / 3);
-
-        // ===== 炮管 =====
-        int endX = cx + (int) (dir.x * (w / 2.0 + 2));
-        int endY = cy + (int) (dir.y * (h / 2.0 + 2));
-        g.setStroke(new BasicStroke(4));
-        g.drawLine(cx, cy, endX, endY);
-        g.setStroke(new BasicStroke(1));
-
-        // ===== 玩家编号 =====
+       // ===== 玩家编号 =====
         if (isPlayer) {
             g.setColor(Color.BLACK);
             g.setFont(new Font("Consolas", Font.BOLD, 14));

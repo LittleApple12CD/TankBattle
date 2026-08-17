@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include "ConfigManager.h"
 #include "resource/TextureManager.h"
+#include "renderer/Renderer.h"
 #include <cmath>
 
 // ===== 构造函数 =====
@@ -55,7 +56,7 @@ void Tank::update(float dt) {
 
 // ===== draw =====
 void Tank::draw(sf::RenderWindow& window) {
-    // 痕迹
+    // ===== 痕迹 =====
     for (const auto& tp : trailPoints) {
         float alpha = 60.0f * (1.0f - tp.age / 1.0f);
         if (alpha > 5.0f) {
@@ -74,7 +75,6 @@ void Tank::draw(sf::RenderWindow& window) {
     int xDraw = static_cast<int>(x - (wDraw - w) / 2.0f);
     int yDraw = static_cast<int>(y - (hDraw - h) / 2.0f);
 
-    // ===== 尝试获取贴图 =====
     std::string entityId;
     if (player) {
         entityId = "tank_p" + std::to_string(playerId);
@@ -84,30 +84,11 @@ void Tank::draw(sf::RenderWindow& window) {
         entityId = "tank_enemy";
     }
 
-    auto& tm = TextureManager::getInstance();
-    auto texture = tm.getEntityTexture(entityId);
+    Renderer& renderer = Renderer::getInstance();
 
-    if (texture) {
-        // ===== 使用贴图绘制并旋转 =====
-        sf::Sprite sprite(*texture);
-        
-        sf::Vector2f center = getCenter();
-        sprite.setPosition(center);
-        
-        sf::Vector2u texSize = texture->getSize();
-        sprite.setOrigin(sf::Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
-        
-        sprite.setScale(sf::Vector2f(
-            wDraw / (float)texSize.x,
-            hDraw / (float)texSize.y
-        ));
-        
-        float angle = std::atan2(dirY, dirX) * 180.0f / 3.14159265f;
-        sprite.setRotation(sf::degrees(angle + 90.0f));
-        
-        window.draw(sprite);
-
-        // ===== 玩家编号（叠加） =====
+    // ===== 尝试使用贴图 =====
+    if (renderer.drawTankWithTexture(window, this, entityId, wDraw, hDraw, xDraw, yDraw)) {
+        // 玩家编号（叠加）
         if (player) {
             sf::Font font;
             if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
@@ -115,6 +96,7 @@ void Tank::draw(sf::RenderWindow& window) {
                 sf::Text text(font, std::to_string(playerId), 16);
                 text.setFillColor(sf::Color::Black);
                 text.setStyle(sf::Text::Bold);
+                sf::Vector2f center = getCenter();
                 sf::FloatRect bounds = text.getLocalBounds();
                 text.setPosition(sf::Vector2f(
                     center.x - bounds.size.x / 2.0f,
@@ -123,42 +105,33 @@ void Tank::draw(sf::RenderWindow& window) {
                 window.draw(text);
             }
         }
-
-        // ===== Boss 血条 =====
-        if (isBoss) {
-            drawBossHealthBar(window);
-        }
         return;
     }
 
-    // 内置绘制
-    float radius = 4.0f;
-    float cornerRadius = std::min(radius, std::min(wDraw, hDraw) / 2.0f);
-    sf::ConvexShape body = createRoundedRect(xDraw, yDraw, wDraw, hDraw, cornerRadius, color);
-    body.setOutlineColor(isProtected() ? sf::Color::White : sf::Color::White);
-    body.setOutlineThickness(isProtected() ? 3.0f : 1.0f);
-    window.draw(body);
+    // ===== 无贴图：使用内置绘制 =====
+    renderer.drawTankBuiltin(window, this, color, wDraw, hDraw, xDraw, yDraw);
 
-    sf::Vector2f center = getCenter();
-    sf::CircleShape turret(w / 5.0f);
-    turret.setPosition(sf::Vector2f(center.x - w/5.0f, center.y - h/5.0f));
-    turret.setFillColor(sf::Color::White);
-    window.draw(turret);
+    // 玩家编号
+    if (player) {
+        sf::Font font;
+        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
+            font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+            sf::Text text(font, std::to_string(playerId), 14);
+            text.setFillColor(sf::Color::Black);
+            text.setStyle(sf::Text::Bold);
+            sf::Vector2f center = getCenter();
+            sf::FloatRect bounds = text.getLocalBounds();
+            text.setPosition(sf::Vector2f(
+                center.x - bounds.size.x / 2.0f,
+                center.y - bounds.size.y / 2.0f - 2.0f
+            ));
+            window.draw(text);
+        }
+    }
 
-    float endX = center.x + dirX * (w / 2.0f + 2.0f);
-    float endY = center.y + dirY * (h / 2.0f + 2.0f);
-    float angle = atan2(dirY, dirX) * 180.0f / 3.14159f;
-    float barrelLength = w / 2.0f + 2.0f;
-    float barrelWidth = 4.0f;
-    sf::RectangleShape barrel(sf::Vector2f(barrelLength, barrelWidth));
-    barrel.setOrigin(sf::Vector2f(0, barrelWidth / 2.0f));
-    barrel.setPosition(center);
-    barrel.setRotation(sf::degrees(angle));
-    barrel.setFillColor(sf::Color::White);
-    window.draw(barrel);
-
+    // Boss 血条
     if (isBoss) {
-        drawBossHealthBar(window);
+        Renderer::getInstance().drawBossHealthBar(window, this, maxHp);
     }
 }
 
