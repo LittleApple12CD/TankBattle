@@ -324,6 +324,8 @@ public class Main implements Runnable, KeyListener {
             String result = menu.handleKeyPress(key, game);
             if (result != null) {
                 switch (result) {
+                    case "back":
+                        break;
                     case "endless_mode": startGame("single_player"); break;
                     case "new_game": startLevelMode(1); break;
                     case "load_game":
@@ -392,7 +394,14 @@ public class Main implements Runnable, KeyListener {
         else if (key == KeyEvent.VK_P) {
             game.setPaused(!game.isPaused());
         } else if (key == KeyEvent.VK_R) {
-            game.initLevel();
+            if (game != null) {
+                if ("level".equals(game.getGameMode())) {
+                    int currentLevel = game.getCurrentLevel();
+                    game.startLevelMode(currentLevel);
+                } else {
+                    game.initLevel();
+                }
+            }
         }
     }
 

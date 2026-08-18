@@ -1,6 +1,8 @@
 package com.tankbattle;
 
 import java.awt.*;
+import java.io.File;
+import java.io.InputStream;
 
 /**
  * 工具类 - 包含常量和向量工具
@@ -85,6 +87,19 @@ public class Utils {
     // 静态初始化
     static {
         updateGridOffsets();
+    }
+
+    public static Font loadFont(String filename, float size, int style) {
+        File file = new File("assets/fonts/" + filename);
+        if (file.exists()) {
+            try {
+                Font font = Font.createFont(Font.TRUETYPE_FONT, file);
+                return font.deriveFont(style, size);
+            } catch (Exception e) {
+                // 忽略
+            }
+        }
+        return new Font("Consolas", style, (int) size);
     }
 
     // ===== 向量类 =====

@@ -79,11 +79,11 @@ public class Menu {
                 return selectCurrent(game);
             case KeyEvent.VK_ESCAPE:
                 if (state.equals("main")) {
-                    System.exit(0);
+                    return "exit";
                 } else {
                     goBack();
+                    return "back";
                 }
-                return null;
             default:
                 return null;
         }
@@ -231,7 +231,7 @@ public class Menu {
             currentItems = singleItems;
         } else if (state.equals("multiplayer")) {
             state = "main";
-            currentItems = multiItems;
+            currentItems = mainItems;
         } else if (state.equals("mode")) {
             state = "multiplayer";
             currentItems = multiItems;
@@ -263,12 +263,12 @@ public class Menu {
         }
 
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Consolas", Font.BOLD, 72));
+        g.setFont(loadFont("consola.ttf", 72, Font.PLAIN));
         String title = "Tank Battle";
         FontMetrics fm = g.getFontMetrics();
         g.drawString(title, (WINDOW_WIDTH - fm.stringWidth(title)) / 2, 200);
 
-        g.setFont(new Font("Consolas", Font.PLAIN, 36));
+        g.setFont(loadFont("consola.ttf", 36, Font.PLAIN));
         int yStart = 350;
         for (int i = 0; i < currentItems.length; i++) {
             g.setColor(i == selected ? Color.WHITE : new Color(150, 150, 160));

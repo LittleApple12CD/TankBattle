@@ -126,9 +126,9 @@ public class Game {
         ModLoader.init();
         ModLoader.onGameLoad(this);
 
-        fontNormal = new Font("Consolas", Font.PLAIN, 18);
-        fontBig = new Font("Consolas", Font.BOLD, 36);
-        fontSmall = new Font("Consolas", Font.PLAIN, 14);
+        fontNormal = loadFont("consola.ttf", 18, Font.PLAIN);
+        fontBig = loadFont("consola.ttf", 36, Font.BOLD);
+        fontSmall = loadFont("consola.ttf", 14, Font.PLAIN);
 
         initLevel();
     }
@@ -143,10 +143,21 @@ public class Game {
         powerups.clear();
         powerupTimer = 0;
 
+        showMessage = null;
+        waitingForEnter = false;
+        victoryDone = false;
+
         walls.clear();
         explosions.clear();
         enemies.clear();
         enemyAIs.clear();
+
+        if (gameMode.equals("level")) {
+            if (levelController != null) {
+                levelController = new LevelState.Controller();
+                levelController.startLevel(level);
+            }
+        }
 
         // 地图
         if (gameMode.equals("level")) {

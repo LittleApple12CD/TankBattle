@@ -208,7 +208,7 @@ public class Renderer {
         g.setColor(Color.WHITE);
         g.drawRect(powerup.x, powerup.y, powerup.w, powerup.h);
         g.setColor(Color.BLACK);
-        g.setFont(new Font("Consolas", Font.BOLD, 14));
+        g.setFont(loadFont("consola.ttf", 14, Font.BOLD));
         g.drawString(String.valueOf(powerup.type), powerup.x + 7, powerup.y + 17);
     }
 }

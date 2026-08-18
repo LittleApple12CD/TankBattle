@@ -62,9 +62,9 @@ public class SettingsMenu {
     private Font fontSmall;
 
     public SettingsMenu() {
-        fontNormal = new Font("Consolas", Font.PLAIN, 28);
-        fontHighlight = new Font("Consolas", Font.BOLD, 28);
-        fontSmall = new Font("Consolas", Font.PLAIN, 18);
+        fontNormal = loadFont("consola.ttf", 28, Font.PLAIN);
+        fontHighlight = loadFont("consola.ttf", 28, Font.BOLD);
+        fontSmall = loadFont("consola.ttf", 18, Font.PLAIN);
     }
 
     public String handleKeyPress(int keyCode) {

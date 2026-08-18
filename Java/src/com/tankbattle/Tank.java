@@ -314,7 +314,7 @@ public class Tank {
             // 玩家编号（叠加）
             if (isPlayer) {
                 g.setColor(Color.BLACK);
-                g.setFont(new Font("Consolas", Font.BOLD, 14));
+                g.setFont(loadFont("consola.ttf", 14, Font.BOLD));
                 String label = String.valueOf(playerId);
                 FontMetrics fm = g.getFontMetrics();
                 int tw = fm.stringWidth(label);
@@ -329,7 +329,7 @@ public class Tank {
        // ===== 玩家编号 =====
         if (isPlayer) {
             g.setColor(Color.BLACK);
-            g.setFont(new Font("Consolas", Font.BOLD, 14));
+            g.setFont(loadFont("consola.ttf", 14, Font.BOLD));
             String label = String.valueOf(playerId);
             FontMetrics fm = g.getFontMetrics();
             int tw = fm.stringWidth(label);
