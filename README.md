@@ -116,6 +116,7 @@ Java/
 │               └── ScriptEngine.java
 ├── build.bat
 ├── compile.bat
+├── build.sh
 └── icon.png
 
 C++/
