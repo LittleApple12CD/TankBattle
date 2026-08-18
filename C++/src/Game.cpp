@@ -640,17 +640,10 @@ void Game::player2Shoot() {
 sf::Font Game::loadFont() {
     sf::Font font;
     const char* paths[] = {
-        "C:/Windows/Fonts/simhei.ttf",
-        "C:/Windows/Fonts/msyh.ttc",
-        "C:/Windows/Fonts/simsun.ttc",
-        "C:/Windows/Fonts/simkai.ttf",
-        "C:/Windows/Fontmsyh.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "C:/Windows/Fonts/consola.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        "assets/fonts/simhei.ttf",
+        "assets/fonts/msyh.ttc",
+        "assets/fonts/consola.ttf",
+        "assets/fonts/arial.ttf"
     };
     for (const char* p : paths) {
         if (font.openFromFile(p)) {
@@ -730,7 +723,7 @@ void Game::draw(sf::RenderWindow& window) {
         window.draw(overlay);
 
         sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
+        if (font.openFromFile("assets/fonts/arial.ttf")) {
             sf::Text msg(font, showMessage, 72);
             msg.setFillColor(sf::Color(255, 255, 100));
             msg.setStyle(sf::Text::Bold);
@@ -753,8 +746,8 @@ void Game::draw(sf::RenderWindow& window) {
 
 void Game::drawUI(sf::RenderWindow& window) {
     sf::Font font;
-    if (!font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
-        (void)font.openFromFile("C:/Windows/Fonts/consola.ttf");
+    if (!font.openFromFile("assets/fonts/arial.ttf")) {
+        (void)font.openFromFile("assets/fonts/consola.ttf");
     }
 
     if (font.getInfo().family.empty()) return;

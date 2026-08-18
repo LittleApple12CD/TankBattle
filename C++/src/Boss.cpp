@@ -75,8 +75,8 @@ void Boss::draw(sf::RenderWindow& window) {
     window.draw(body);
 
     sf::Font font;
-    if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-        font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+    if (font.openFromFile("assets/fonts/arial.ttf") ||
+        font.openFromFile("assets/fonts/consola.ttf")) {
         sf::Text star(font, "*", 24);
         star.setFillColor(sf::Color(255, 215, 0));
         star.setPosition(sf::Vector2f(cx - 12, cy - 14));

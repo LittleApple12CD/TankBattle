@@ -214,8 +214,8 @@ void Renderer::drawPowerUpBuiltin(sf::RenderWindow& window, PowerUp* powerup) {
 
     // 文字
     sf::Font font;
-    if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-        font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+    if (font.openFromFile("assets/fonts/arial.ttf") ||
+        font.openFromFile("assets/fonts/consola.ttf")) {
         sf::Text text(font, std::string(1, powerup->getType()), 16);
         text.setFillColor(sf::Color::Black);
         text.setStyle(sf::Text::Bold);

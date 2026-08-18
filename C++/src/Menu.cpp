@@ -16,12 +16,9 @@ Menu::Menu() : state(MAIN), selected(0), modListScroll(0), modListSelected(0), s
     currentItems = &mainItems;
 
     // 加载字体
-    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial.ttf");
+    bool loaded = font.openFromFile("assets/fonts/arial.ttf");
     if (!loaded) {
-        loaded = font.openFromFile("C:/Windows/Fonts/consola.ttf");
-    }
-    if (!loaded) {
-        loaded = font.openFromFile("C:/Windows/Fonts/simhei.ttf");
+        loaded = font.openFromFile("assets/fonts/consola.ttf");
     }
     fontTitle = font;
 }

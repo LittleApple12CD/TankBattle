@@ -4,9 +4,9 @@
 
 PowerUp::PowerUp(float x, float y, char type)
     : x(x), y(y), w(24), h(24), type(type), alive(true) {
-    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial/arial.ttf");
+    bool loaded = font.openFromFile("assets/fonts/arial.ttf");
     if (!loaded) {
-        loaded = font.openFromFile("C:/Windows/Fonts/consola.ttf");
+        loaded = font.openFromFile("assets/fonts/consola.ttf");
     }
 }
 

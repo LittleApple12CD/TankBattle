@@ -4,12 +4,9 @@
 #include <iostream>
 
 SettingsMenu::SettingsMenu() : selected(0), state(NAVIGATE), windowIndex(0) {
-    bool loaded = font.openFromFile("C:/Windows/Fonts/Arial.ttf");
+    bool loaded = font.openFromFile("assets/fonts/arial.ttf");
     if (!loaded) {
-        loaded = font.openFromFile("C:/Windows/Fonts/consola.ttf");
-    }
-    if (!loaded) {
-        loaded = font.openFromFile("C:/Windows/Fonts/simhei.ttf");
+        loaded = font.openFromFile("assets/fonts/consola.ttf");
     }
     windowSizes = {{1200, 800}, {1600, 900}, {1920, 1080}};
     buildItems();

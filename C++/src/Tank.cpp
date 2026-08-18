@@ -91,8 +91,8 @@ void Tank::draw(sf::RenderWindow& window) {
         // 玩家编号（叠加）
         if (player) {
             sf::Font font;
-            if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-                font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+            if (font.openFromFile("assets/fonts/arial.ttf") ||
+                font.openFromFile("assets/fonts/consola.ttf")) {
                 sf::Text text(font, std::to_string(playerId), 16);
                 text.setFillColor(sf::Color::Black);
                 text.setStyle(sf::Text::Bold);
@@ -114,8 +114,8 @@ void Tank::draw(sf::RenderWindow& window) {
     // 玩家编号
     if (player) {
         sf::Font font;
-        if (font.openFromFile("C:/Windows/Fonts/Arial.ttf") ||
-            font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+        if (font.openFromFile("assets/fonts/arial.ttf") ||
+            font.openFromFile("assets/fonts/consola.ttf")) {
             sf::Text text(font, std::to_string(playerId), 14);
             text.setFillColor(sf::Color::Black);
             text.setStyle(sf::Text::Bold);
