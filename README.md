@@ -1,7 +1,7 @@
 # 坦克大战
 
-- **Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式** 和 **关卡** 模式。本项目用 **Python、Java、C++** 三种语言实现，支持模组、资源包和脚本加载，Java版使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
-- **Tank Battle** is a classic two-player tank game that supports PVE co-op mode, PVP battle mode, as well as single-player mode and level mode.Supports loading mods, resource packs, and scripts. This project is implemented in Python, Java, and C, using the OpenGL graphics API. The C version is based on SFML 3.0, the Java version is based on Swing, and the Python version is based on Pygame.
+- **Tank Battle** 是一款经典的双人对战坦克游戏，支持 **PVE 合作模式** 和 **PVP 对战模式** 以及 **单人模式** 和 **关卡** 模式。本项目用 **Python、Java、C++** 三种语言实现（Python版已停止更新），支持模组、资源包和脚本加载，Java版使用OpenGL图形API，C++版基于SFML3.0，Java版基于Swing，Python版基于Pygame
+- **Tank Battle** is a classic two-player tank game that supports PVE co-op mode, PVP battle mode, as well as single-player mode and level mode.Supports loading mods, resource packs, and scripts. This project is implemented in Python, Java, and C++, using the OpenGL graphics API. The C version is based on SFML 3.0, the Java version is based on Swing, and the Python version is based on Pygame.
 
 ## 游戏模式
 
@@ -77,6 +77,11 @@ Java/
 │       ├── powerup.wav
 │       ├── shoot.wav
 │       └── victory.wav
+│       fonts/
+│       ├── arial.ttf
+│       ├── consola.ttf
+│       ├── msyh.ttc
+│       └── simhei.ttf
 ├── src/
 │   └── com/
 │       └── tankbattle/
@@ -95,6 +100,7 @@ Java/
 │           ├── Settings.java
 │           ├── SettingsMenu.java
 │           ├── SoundManager.java
+│           ├── Renderer.java
 │           ├── Tank.java
 │           ├── Utils.java
 │           ├── Wall.java
@@ -120,6 +126,11 @@ C++/
 │       ├── powerup.wav
 │       ├── shoot.wav
 │       └── victory.wav
+│       fonts/
+│       ├── arial.ttf
+│       ├── consola.ttf
+│       ├── msyh.ttc
+│       └── simhei.ttf
 ├── src/
 │   ├── Boss.cpp
 │   ├── Boss.h
@@ -162,6 +173,9 @@ C++/
 │   │   ├── ModInfo.h
 │   │   └── ModLoader.cpp
 │   │   └── ModLoader.h
+│   ├── renderer/
+│   │   ├── Renderer.h
+│   │   ├── Renderer.cpp
 │   ├── resource/
 │   │   ├── MapLoader.cpp
 │   │   ├── MapLoader.h
